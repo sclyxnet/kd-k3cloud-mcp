@@ -4,11 +4,22 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-> 当前 PyPI 版本：`0.2.1`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+> 当前 PyPI 版本：`0.3.1`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
 
 ---
 
 ## [Unreleased]
+
+### Added（新增）
+
+- **数据中心（账套）管理与中文交互**：把登录页「账套下拉框」（`AccountService.GetDataCenterList`）抽成 MCP 工具。
+  - `kingdee_list_data_centers`：列出所有账套（中文名 / 账套号 / 登录 Id / 数据库类型 / 认证方式），无需登录即可调用。
+  - `kingdee_switch_data_center(identifier)`：按中文名 / 账套号 / Id 切换账套并重置会话，下一次 API 调用自动用新账套重新登录。
+  - `KINGDEE_ACCT_ID` 支持直接填中文账套名或账套号，登录前自动解析成登录用的 Id（金蝶 WebAPI 登录 `acctID` = 数据中心 `Id`）。
+
+---
+
+## [Unreleased-历史合并工程]
 
 ### Added（新增）
 

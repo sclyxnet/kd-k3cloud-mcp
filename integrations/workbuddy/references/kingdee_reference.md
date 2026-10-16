@@ -20,11 +20,21 @@
 > 历史：0.2.0 曾砍掉 AppSecret 改为仅 ValidateUser；本合并工程在 0.3.0 重新加回，做成可插拔双登录（`server.py` 的 `_login()` 按 `KINGDEE_AUTH_MODE` 分派）。
 > 若你的金蝶环境要求 `LoginByAppSecret` 额外传入 `username` 参数，请在 `server.py` 的 `_login()` 中 `payload` 补入（端点入参顺序：`acctId, appId, appSecret, lcid`）。
 
+## 数据中心（账套）管理与中文交互
+本合并工程在 0.3.1 新增两个工具，把登录页的「账套下拉框」（`AccountService.GetDataCenterList`）抽成 MCP 工具，无需登录即可调用：
+
+- **`kingdee_list_data_centers`**：列出服务器上所有账套，返回每个账套的 `Name`(中文名) / `Number`(账套号) / `Id`(登录用) / `DBType` / `AuthenticationMethods`。
+- **`kingdee_switch_data_center(identifier)`**：切换到指定账套并重置会话。`identifier` 可用**中文名 / 账套号 / Id**，例如 `预生产`、`TEST20260521`、`6466ccc799e8fb`。切换后下一次 API 调用自动用新账套重新登录；切换仅对当前 MCP 进程生效（永久生效需在 mcp.json 的 `KINGDEE_ACCT_ID` 改为目标 Id 或中文名）。
+
+配套能力：**`KINGDEE_ACCT_ID` 支持直接填中文账套名或账套号**（如 `预生产`），`server.py` 在登录前通过 `GetDataCenterList` 自动解析成登录用的 `Id`；若已是 Id 则原样使用。这样 AI 交互时可以直接说「切到预生产账套」「查预生产里的采购订单」，无需记忆十六进制 Id。
+
+> 解析规则：只有 `KINGDEE_ACCT_ID` 本身就是某账套的 `Id` 才原样透传；其余中文名 / 账套号一律解析为目标账套的 `Id`（金蝶 WebAPI 登录 `acctID` 参数 = 数据中心 `Id`）。返回体为 `base64(gzip(json))`，已做对应解码。
+
 ## 环境变量（必填，取决于登录方式）
 | 变量 | 说明 | 示例 |
 |------|------|------|
 | KINGDEE_SERVER_URL | 金蝶服务器地址，需含 `/k3cloud/` 后缀 | http://your-server/k3cloud/ |
-| KINGDEE_ACCT_ID | 账套 ID | your-acct-id |
+| KINGDEE_ACCT_ID | 账套 ID（**也可用中文账套名 / 账套号**，启动时自动解析成登录用的 Id） | your-acct-id 或 预生产 |
 | KINGDEE_AUTH_MODE | 登录方式：`password`(默认) \| `app_secret` | password |
 | KINGDEE_USERNAME | 金蝶账号（password 模式，建议专用集成账号，非 Administrator） | your-username |
 | KINGDEE_PASSWORD | 金蝶账号密码（password 模式，ValidateUser 登录） | your-password |

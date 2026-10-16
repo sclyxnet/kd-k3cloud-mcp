@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kingdee-mcp"
-version = "0.3.0"
+version = "0.3.1"
 description = "MCP Server for Kingdee Cloud K/3 - Works with any MCP-compatible AI client (dual auth: password / app_secret)"
 readme = "README.md"
 license = "MIT"

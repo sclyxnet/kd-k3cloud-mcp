@@ -27,10 +27,19 @@
 
 > 上游 0.2.0 砍掉了 AppSecret，本工程在 0.3.0 重新加回，做成可插拔（`src/kingdee_mcp/server.py` 的 `_login()` 按 `KINGDEE_AUTH_MODE` 分派）。
 
+## 本版本相对上游新增：数据中心（账套）管理与中文交互（0.3.1）
+
+把登录页的「账套下拉框」（`AccountService.GetDataCenterList`）抽成 MCP 工具，让用户用自然语言切换账套、无需记忆十六进制 Id：
+
+- **`kingdee_list_data_centers`**：列出服务器上所有账套（中文名 / 账套号 / 登录 Id / 数据库类型 / 认证方式），**无需登录**即可调用。
+- **`kingdee_switch_data_center(identifier)`**：切到指定账套并重置会话，`identifier` 支持**中文名 / 账套号 / Id**（如 `预生产`、`TEST20260521`、`6466ccc799e8fb`）；切换后下一次 API 调用自动用新账套重登。
+- **`KINGDEE_ACCT_ID` 支持填中文账套名 / 账套号**：登录前自动通过 `GetDataCenterList` 解析成登录用的 `Id`（金蝶 WebAPI 登录 `acctID` = 数据中心 `Id`），已是 Id 则原样透传。
+
 ## 功能特性
 
 - **97 个工具**：覆盖生产、成本、资产、审计、采购、销售、库存、财务报表等 13+ 业务域（清单见下文，权威来源 `server.py`）。
 - **双登录**：账号密码 / 应用授权，一键切换。
+- **账套（数据中心）管理**：列表 + 中文名/账套号切换，AI 可直接说「切到预生产账套」。
 - **元数据动态查询**：`get_bill_template` / `validate_bill` / `refresh_metadata`，本地缓存。
 - **4 个 SQL Server 探查工具**：搜索表/字段、看表结构、form_id→表名映射。
 - **自然语言操作**：中文描述需求，AI 自动转 API 调用。

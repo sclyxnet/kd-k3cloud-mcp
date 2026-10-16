@@ -17,6 +17,10 @@ from typing import Any, List, Literal, Optional, Callable
 from collections import defaultdict
 from dataclasses import dataclass, field
 
+import base64
+import gzip
+import uuid
+
 import httpx
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.prompts.base import UserMessage
@@ -677,6 +681,9 @@ _EP = {
     # 或误用了 KDSReportAPIService 端点——都是错的。官方开发者社区示例的 DynamicFormService
     # 就是本端点，PostMan 示例的 {"parameters":[...]} 是 SDK 层包装，HTTP 层是双字段。
     "report":      "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.GetSysReportData.common.kdsvc",
+    # 数据中心（账套）列表：登录页下拉框用的就是这个，无需登录即可调用。
+    # 返回体为 base64(gzip(json))，需先 base64 解再 gzip 解。
+    "get_dc_list": "Kingdee.BOS.ServiceFacade.ServicesStub.Account.AccountService.GetDataCenterList.common.kdsvc",
 }
 
 # Session 缓存（避免每次请求都重新登录）
@@ -1637,7 +1644,13 @@ async def _login() -> str:
                      以应用身份登录，无需真实用户账号；但报表等依赖数据权限的
                      查询会受应用授权范围限制。
     """
-    global _session_id
+    global _session_id, ACCT_ID
+    # 解析 KINGDEE_ACCT_ID：支持中文账套名 / Number / Id（详见 _resolve_acct_id）。
+    # 解析结果就地写回 ACCT_ID，后续登录与切换工具共用同一来源。
+    resolved = await _resolve_acct_id(ACCT_ID)
+    if resolved and resolved != ACCT_ID:
+        ACCT_ID = resolved
+    acct_id = ACCT_ID
     if AUTH_MODE == "app_secret":
         if not (APP_ID and APP_SEC):
             raise RuntimeError(
@@ -1646,7 +1659,7 @@ async def _login() -> str:
             )
         # 金蝶第三方应用授权登录：LoginByAppSecret(acctId, appId, appSecret, lcid)。
         # 若你的环境要求额外 username 参数，请在此 payload 中补入。
-        payload = {"parameters": [ACCT_ID, APP_ID, APP_SEC, LCID]}
+        payload = {"parameters": [acct_id, APP_ID, APP_SEC, LCID]}
         ep = "login_app"
     else:
         if not PASSWORD:
@@ -1654,7 +1667,7 @@ async def _login() -> str:
                 "未配置 KINGDEE_PASSWORD，无法以账号密码方式登录。请设置密码，"
                 "或把 KINGDEE_AUTH_MODE 改为 app_secret 并配置 KINGDEE_APP_ID/KINGDEE_APP_SEC。"
             )
-        payload = {"parameters": [ACCT_ID, USERNAME, PASSWORD, LCID]}
+        payload = {"parameters": [acct_id, USERNAME, PASSWORD, LCID]}
         ep = "login_user"
     # 💡 REMEMBER: httpx 0.28+ 默认 HTTP/2，金蝶不支持，必须显式传 http1=True，否则全 502
     async with httpx.AsyncClient(timeout=30, proxy=None,
@@ -1673,6 +1686,230 @@ async def _login() -> str:
         # 两种登录方式返回字段名一致（KDSVCSessionId），个别环境可能用小写 SessionId，兼容取之
         _session_id = data.get("KDSVCSessionId") or data.get("SessionId")
         return _session_id
+
+
+# ─────────────────────────────────────────────
+# 数据中心（账套）列表：GetDataCenterList
+# ─────────────────────────────────────────────
+# 登录页下拉框用的就是这个接口，无需登录即可调用。
+# 返回体是 base64(gzip(json))：先 base64 解，再 gzip 解，再 json。
+# 实测（39.103.166.148）响应为账套对象数组，每个含：
+#   Id(string, 登录用 acctID) / Number(账套号) / Name(中文名) /
+#   LocaleValueName[{Key:2052,Value:中文名}] / DBType / AuthenticationMethods[{Name}]
+_DC_CACHE: Optional[list] = None
+_DC_CACHE_TS: float = 0.0
+_DC_CACHE_TTL: float = 300.0  # 5 分钟内复用，避免每次切换都打网络
+
+
+def _decode_dc_body(raw: bytes) -> Any:
+    """把 GetDataCenterList 的响应体（base64(gzip(json))）解成 Python 对象。"""
+    try:
+        b64 = raw.decode("utf-8", "ignore").strip()
+        gz = base64.b64decode(b64)
+        txt = gzip.decompress(gz).decode("utf-8", "ignore")
+    except Exception:
+        # 兜底：个别环境可能未压缩，直接当文本处理
+        txt = raw.decode("utf-8", "ignore")
+    try:
+        return json.loads(txt)
+    except (json.JSONDecodeError, ValueError):
+        return {"kd_error": True, "message": txt[:2000]}
+
+
+async def _fetch_data_center_list(force: bool = False) -> list:
+    """调用 GetDataCenterList（无需登录），返回账套原始对象列表。"""
+    global _DC_CACHE, _DC_CACHE_TS
+    now = time.time()
+    if not force and _DC_CACHE is not None and (now - _DC_CACHE_TS) < _DC_CACHE_TTL:
+        return _DC_CACHE
+
+    clientinfo = json.dumps({
+        "ipAddress": "00000000-0000-0000-0000-000000000000",
+        "macAddress": "00000000-0000-0000-0000-000000000000",
+        "hostName": "00000000-0000-0000-0000-000000000000",
+        "IsDefaultInfo": False,
+        "IpAddress": "00000000-0000-0000-0000-000000000000",
+        "MacAddress": "00000000-0000-0000-0000-000000000000",
+        "HostName": "00000000-0000-0000-0000-000000000000",
+        "OperationSystem": "", "BrowserType": "win|chrome|140.0.0.0",
+        "Version": "HTML5", "ClientType": 16, "vH": 595, "vW": 1697,
+        "AvailableAreaSize": {"Height": 595, "Width": 1692},
+        "ScreenSize": {"Height": 960, "Width": 1707},
+        "EntryPageUrl": SERVER_URL.rstrip("/") + "/html5/index.aspx",
+        "customArgs": "", "Gsid": "0", "TRLevel": 1,
+    }, ensure_ascii=False)
+    body = {
+        "ap0": "H4sIAAAAAAAAAzMEALfv3IMBAAAA",
+        "nonce": "", "v": "1.0", "format": "1", "sign": "",
+        "timestamp": '"' + time.strftime("%Y-%m-%dT%H:%M:%S.") + "000Z" + '"',
+        "compressed": True, "compressedapx": True, "useragent": "KD.HTML5.GZIP",
+        "clientinfo": clientinfo,
+        "forminfo": "H4sIAAAAAAAAA1M1d1I1MipOzi9IBdKqxo5A0sUzLD4lKb8CJGDuAgAtLVt8IgAAAA%3D%3D",
+    }
+    cookie_sid = uuid.uuid4().hex
+    headers = {
+        "accept": "*/*",
+        "accept-language": "zh-CN,zh;q=0.9",
+        "content-type": "text/json",
+        "kdbiz-info": json.dumps({"m": "GetDataCenterList"}),
+        "kdservice-sessionid": "v",
+        "theme": "standard",
+        "x-requested-with": "XMLHttpRequest",
+        "Referer": SERVER_URL.rstrip("/") + "/html5/index.aspx",
+        "cookie": f"ASP.NET_SessionId={cookie_sid}; kdservice-sessionid={cookie_sid}",
+    }
+    async with httpx.AsyncClient(timeout=30, proxy=None,
+                                 transport=httpx.AsyncHTTPTransport(http1=True)) as client:
+        resp = await client.post(_url("get_dc_list"), json=body, headers=headers)
+        resp.raise_for_status()
+        data = _decode_dc_body(resp.content)
+
+    if isinstance(data, list):
+        dcs = data
+    elif isinstance(data, dict):
+        dcs = data.get("dataCenters") or data.get("data") or data.get("Result") or []
+    else:
+        dcs = []
+    _DC_CACHE = dcs
+    _DC_CACHE_TS = now
+    return dcs
+
+
+def _match_data_center(dcs: list, identifier: str) -> Optional[dict]:
+    """按 Id / Number / Name(2052) 精确匹配，再按中文名片段宽松匹配。"""
+    key = (identifier or "").strip().lower()
+    if not key:
+        return None
+    norm = []
+    for dc in dcs:
+        if not isinstance(dc, dict):
+            continue
+        name = str(dc.get("Name", ""))
+        locale = ""
+        for lv in (dc.get("LocaleValueName") or []):
+            if lv.get("Key") == 2052:
+                locale = str(lv.get("Value", ""))
+        norm.append({
+            "dc": dc,
+            "id": str(dc.get("Id", "")).lower(),
+            "number": str(dc.get("Number", "")).lower(),
+            "name": name.lower(),
+            "locale": locale.lower(),
+        })
+    # 第一遍：精确（相等）
+    for n in norm:
+        if key in (n["id"], n["number"], n["name"], n["locale"]):
+            return n["dc"]
+    # 第二遍：中文名/账套号片段包含
+    for n in norm:
+        if key in n["name"] or key in n["locale"] or key in n["number"]:
+            return n["dc"]
+    return None
+
+
+async def _resolve_acct_id(raw: str) -> str:
+    """把 KINGDEE_ACCT_ID（可能是中文名 / Number / Id）解析成登录用的 Id。
+
+    - 若 raw 本身就是某个账套的登录 Id（WebAPI ValidateUser 的 acctID 参数），原样返回，不改登录行为；
+    - 否则按 Number / Name(2052) / 中文名片段模糊匹配，返回匹配账套的 **Id**
+      （金蝶 WebAPI 登录 acctID = 数据中心 Id；Number/Name 都只是人类可读标识）；
+    - 取不到列表（网络不可达）或匹配不到时，原样返回 raw，交由登录环节报明确错误。
+
+    注意：当某账套的 Number 与 Name 相等（如“预生产”）时，仍应按“非 Id 即解析”处理，
+    返回其 Id，而不是把中文名原样回传导致登录用错值。
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        return raw
+    try:
+        dcs = await _fetch_data_center_list()
+    except Exception:
+        return raw
+    if not dcs:
+        return raw
+    # 1) raw 本身就是某个账套的登录 Id → 原样返回（兼容已有配置）
+    raw_l = raw.lower()
+    for dc in dcs:
+        if isinstance(dc, dict) and str(dc.get("Id", "")).lower() == raw_l:
+            return raw
+    # 2) 否则按 Number / Name / 片段匹配，返回其 Id
+    m = _match_data_center(dcs, raw)
+    if not m:
+        return raw
+    return str(m.get("Id", raw))
+
+
+# ─────────────────────────────────────────────
+# 数据中心（账套）工具：列表 / 切换
+# ─────────────────────────────────────────────
+@mcp.tool()
+async def kingdee_list_data_centers() -> str:
+    """列出当前金蝶服务器上所有可用的数据中心（账套）。
+
+    无需登录即可调用（对应登录页的账套下拉框）。返回每个账套的：
+    中文名(Name)、账套号(Number)、登录ID(Id)、数据库类型(DBType)、支持的认证方式(AuthenticationMethods)。
+    当用户问“有哪些账套/数据中心”“我要切到XX账套”时，先调用本工具查看可选列表。
+    返回的 Id 即为 KINGDEE_ACCT_ID 应填写的值；也可在 kingdee_switch_data_center 中直接用中文名切换。
+    """
+    try:
+        dcs = await _fetch_data_center_list(force=True)
+    except Exception as e:
+        return _fmt({"error": f"获取账套列表失败: {e}"})
+    out = []
+    for dc in dcs:
+        if not isinstance(dc, dict):
+            continue
+        auths = [a.get("Name") for a in (dc.get("AuthenticationMethods") or []) if isinstance(a, dict)]
+        out.append({
+            "name": dc.get("Name"),
+            "number": dc.get("Number"),
+            "id": dc.get("Id"),
+            "db_type": dc.get("DBType"),
+            "auth_methods": auths,
+        })
+    return _fmt({"count": len(out), "data_centers": out})
+
+
+@mcp.tool()
+async def kingdee_switch_data_center(identifier: str) -> str:
+    """切换到指定数据中心（账套），并重置登录会话以便下次 API 调用自动用新账套重新登录。
+
+    identifier 可用中文账套名、账套号(Number)或登录ID(Id)，例如“预生产”“TEST20260521”“6466ccc799e8fb”。
+    切换后 KINGDEE_ACCT_ID 在运行时被更新为新账套的 Id，原会话立即失效并触发重连；
+    后续所有单据/查询操作都会指向新账套。切换仅对当前 MCP 进程生效，如需永久生效请在
+    mcp.json 的 env.KINGDEE_ACCT_ID 中改为目标账套的 Id（或中文名，启动时会自动解析）。
+
+    Args:
+        identifier: 账套中文名 / Number / Id（任选其一，支持片段模糊匹配）
+    """
+    global _session_id, ACCT_ID, _METADATA_CACHE
+    try:
+        dcs = await _fetch_data_center_list(force=True)
+    except Exception as e:
+        return _fmt({"switched": False, "error": f"获取账套列表失败，无法切换: {e}"})
+    m = _match_data_center(dcs, identifier)
+    if not m:
+        avail = [{"name": d.get("Name"), "number": d.get("Number"), "id": d.get("Id")}
+                 for d in dcs if isinstance(d, dict)]
+        return _fmt({
+            "switched": False,
+            "error": f"未找到匹配“{identifier}”的账套，请先用 kingdee_list_data_centers 查看可选列表",
+            "available": avail,
+        })
+    new_id = str(m.get("Id"))
+    old = ACCT_ID
+    ACCT_ID = new_id
+    _session_id = None                       # 重置会话 → 下次调用自动重登
+    try:
+        _METADATA_CACHE.clear()              # 不同账套字段/表单可能不同，清缓存
+    except Exception:
+        pass
+    return _fmt({
+        "switched": True,
+        "from": old,
+        "to": {"name": m.get("Name"), "number": m.get("Number"), "id": new_id},
+        "session": "已重置，下一次 API 调用将用新账套重新登录",
+    })
 
 
 async def _post(ep_key: str, payload: Any) -> Any:

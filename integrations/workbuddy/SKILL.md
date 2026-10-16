@@ -61,6 +61,7 @@ agent_created: true
 4. `KINGDEE_APP_SEC` — 金蝶第三方应用 AppSecret
 
 > 两种方式都需在金蝶后台为对应账号/应用分配所需模块的操作权限。password 方式以真实用户身份执行，权限最完整；app_secret 方式以应用身份执行，报表类依赖数据权限的查询可能受限。
+> `KINGDEE_ACCT_ID`（账套 ID）**可直接填中文账套名或账套号**（如 `预生产`），本连接器会在登录前通过 `GetDataCenterList` 自动解析成登录用的 Id；已是 Id 则原样使用。
 
 ### 第 3 步：写入 MCP 配置
 运行本技能附带的配置脚本（按所选登录方式传参）：
@@ -101,3 +102,13 @@ python3 integrations/workbuddy/scripts/configure_kingdee_mcp.py \
 - `integrations/workbuddy/scripts/configure_kingdee_mcp.py` — 合并写入 MCP 配置（支持双登录）。
 - `references/kingdee_reference.md` — 完整工具列表（97）、支持的单据类型（form_id）、环境变量、双登录说明与 FAQ。
 - `src/kingdee_mcp/server.py` — 上游 MCP Server 源码（97 个 `@mcp.tool`，双登录实现见 `_login()`）。
+
+## 数据中心（账套）管理与中文交互
+本连接器把登录页的「账套下拉框」（`GetDataCenterList`）抽成 MCP 工具，让用户/AI 用自然语言切换账套，无需记忆十六进制 Id：
+
+- **`kingdee_list_data_centers`**：列出所有账套（中文名 / 账套号 / 登录 Id / 数据库类型 / 认证方式），无需登录即可调用。当用户问「有哪些账套」「我要切到XX账套」时先调用它。
+- **`kingdee_switch_data_center(identifier)`**：切到指定账套并重置会话。`identifier` 支持**中文名 / 账套号 / Id**（如 `预生产`、`TEST20260521`、`6466ccc799e8fb`）。切换后下一次 API 调用自动用新账套重新登录；切换仅对当前 MCP 进程生效。
+
+配合 `KINGDEE_ACCT_ID` 可填中文名/账套号（启动时自动解析为登录 Id），AI 即可直接说「查预生产里的采购订单」「切到 TEST20260521 账套」，无需硬编码 Id。
+
+> 注意：切换是运行时行为，进程重启后回到 mcp.json 里 `KINGDEE_ACCT_ID` 配置的值。若要永久生效，把 `KINGDEE_ACCT_ID` 改成目标账套的 Id（或中文名）。
