@@ -1,10 +1,10 @@
 # 金蝶云星空 MCP 参考（kingdee-mcp >= 0.3.0，双登录版）
 
 > 第三方开源项目（github.com/WaHaiLong/KingdeeMCP，PyPI: `kingdee-mcp`），**非金蝶官方出品**。
-> 本参考随 `kingdee-mcp-unified` 合并工程维护。**工具总数以 `src/kingdee_mcp/server.py` 中 `@mcp.tool` 装饰器为准 = 97 个**（下文清单由脚本从源码自动提取，避免人工过时）。
+> 本参考随 `kd-k3cloud-mcp` 合并工程维护。**工具总数以 `src/kingdee_mcp/server.py` 中 `@mcp.tool` 装饰器为准 = 97 个**（下文清单由脚本从源码自动提取，避免人工过时）。
 
 ## 仓库与安装
-- GitHub（合并工程）: https://github.com/<your-org>/kingdee-mcp-unified
+- GitHub（合并工程）: https://github.com/sclyxnet/kd-k3cloud-mcp
 - 上游 GitHub: https://github.com/WaHaiLong/KingdeeMCP
 - PyPI: `pip install kingdee-mcp` 或 `uvx kingdee-mcp`（推荐，免安装运行）
 - 官网: https://wahailong.github.io/KingdeeMCP/

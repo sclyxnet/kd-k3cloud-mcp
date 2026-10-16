@@ -1,6 +1,6 @@
 ---
-name: kingdee-mcp-unified
-slug: kingdee-mcp-unified
+name: kd-k3cloud-mcp
+slug: kd-k3cloud-mcp
 displayName: 金蝶云星空 MCP 连接器（双登录版）
 description: 连接并配置金蝶云星空 MCP Server 的 WorkBuddy 连接器（第三方开源 kingdee-mcp，非金蝶官方出品）。接入后可用自然语言查询/操作金蝶 ERP 单据；支持两种登录方式——账号密码(ValidateUser) 与 第三方应用授权(LoginByAppSecret)。
 author: tery (merged) / WaHaiLong (upstream) / huaangdou-afk (connector)
@@ -8,7 +8,7 @@ version: 0.3.0
 category: 办公协作
 platforms:
   - workbuddy
-repository: https://github.com/<your-org>/kingdee-mcp-unified
+repository: https://github.com/sclyxnet/kd-k3cloud-mcp
 triggers:
   - 连接金蝶
   - 连接金蝶云星空
