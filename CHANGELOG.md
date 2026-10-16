@@ -4,7 +4,35 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-> 当前 PyPI 版本：`0.3.1`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+> 当前 PyPI 版本：`0.3.2`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+
+---
+
+## [0.3.2] — 2026-10-16（真机实测修复）
+
+> 本轮改动全部在真实金蝶服务器 `TEST20230518` 账套上端到端实测验证（11/11 通过）。
+
+### Added（新增）
+
+- **登录信息全量运行时切换**：`kingdee_switch_login` 支持切换 服务器地址 / 账套 / 用户名 / 密码 / 登录方式 / AppID / AppSecret / LCID，
+  任意一项可单独改，切换后立即重置会话并在下一次调用自动重连；`persist=True` 可写回 `~/.workbuddy/mcp.json` 永久生效。
+- **`kingdee_show_login_info`**：查看当前连接与登录配置，密码 / AppSecret 自动脱敏。
+- **`kingdee_test_login`**：立即试登录并报告结果，失败给出明确原因。
+- **LCID 语言映射表（412 条）**：`2052=中文(简体)`、`1033=英语(美国)`、`3076=中文(繁體·香港)`、`1028=中文(繁體·台灣)` 等，
+  `_LCID_NAMES_ZH` / `_LCID_NAMES_EN` 双表；`kingdee_list_data_centers` 直接从账套 `LocaleValueName` 推导支持的语言（无需额外请求），默认 2052 中文。
+- **网络韧性**：`_NET_RETRY`（默认 3 次，`KINGDEE_NET_RETRY` 可调）+ 线性退避，网络超时 / 5xx / 会话失效自动重登重发。
+
+### Fixed（修复）
+
+- **6 个专用服务端点不存在**：真机实测 `UserService` / `RoleService` / `PermissionService` / `SequenceRuleService` /
+  `NumberRuleService` / `SystemConfigService` 在部分金蝶版本返回 `...Service no found.`。
+  现在自动降级：有可替代业务对象的（`user` → `SEC_User`）改走通用 `ExecuteBillQuery`；无可替代的给出明确中文提示，
+  不再把底层 `InnerExWrapper` 堆栈抛给调用方。
+- **会话失效误判**：原逻辑用 `"session" in resp.text` 宽松匹配，正常响应只要含 `SessionId` 字段名就会被误判失效，
+  导致每次调用白白重登一次。改为只认明确失效措辞（`_SESSION_EXPIRED_MARKERS`）+ 401/419 状态码。
+- **账套名解析误判**：`预生产` 账套的 `Number` 与 `Name` 同为「预生产」，旧逻辑「是 Number 就原样返回」会把中文名透传给登录接口。
+  改为只有 `raw` 本身就是某账套 `Id` 才透传，其余一律解析为 `Id`。
+- **`UserQueryInput` 默认字段不符**：真机实测 `SEC_User` 可用字段为 `FUserId/FName/FEMail`，旧默认值 `FUserID,FNumber,FDepartment.FName,FIsActive` 会报错，已修正。
 
 ---
 

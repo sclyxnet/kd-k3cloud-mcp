@@ -6,7 +6,7 @@
 
 | 组成 | 来源 | 作用 |
 |------|------|------|
-| `src/kingdee_mcp/` | [WaHaiLong/KingdeeMCP](https://github.com/WaHaiLong/KingdeeMCP)（PyPI `kingdee-mcp`） | 真正的 MCP Server，**97 个工具** |
+| `src/kingdee_mcp/` | [WaHaiLong/KingdeeMCP](https://github.com/WaHaiLong/KingdeeMCP)（PyPI `kingdee-mcp`） | 真正的 MCP Server，上游 **97 个工具**（本工程扩充至 **103 个**） |
 | `integrations/workbuddy/` | [huaangdou-afk/kingdee-mcp-connector](https://github.com/huaangdou-afk/kingdee-mcp-connector) | WorkBuddy 技能壳（一键配置、触发器、参考文档） |
 
 官网：https://wahailong.github.io/KingdeeMCP/
@@ -27,17 +27,49 @@
 
 > 上游 0.2.0 砍掉了 AppSecret，本工程在 0.3.0 重新加回，做成可插拔（`src/kingdee_mcp/server.py` 的 `_login()` 按 `KINGDEE_AUTH_MODE` 分派）。
 
-## 本版本相对上游新增：数据中心（账套）管理与中文交互（0.3.1）
+## 本版本相对上游新增：登录信息与账套的全量运行时切换（0.3.2）
 
-把登录页的「账套下拉框」（`AccountService.GetDataCenterList`）抽成 MCP 工具，让用户用自然语言切换账套、无需记忆十六进制 Id：
+把登录页的「账套下拉框」（`AccountService.GetDataCenterList`）抽成 MCP 工具，并让**所有登录信息都能在运行时切换并自动重连**：
 
-- **`kingdee_list_data_centers`**：列出服务器上所有账套（中文名 / 账套号 / 登录 Id / 数据库类型 / 认证方式），**无需登录**即可调用。
-- **`kingdee_switch_data_center(identifier)`**：切到指定账套并重置会话，`identifier` 支持**中文名 / 账套号 / Id**（如 `预生产`、`TEST20260521`、`6466ccc799e8fb`）；切换后下一次 API 调用自动用新账套重登。
-- **`KINGDEE_ACCT_ID` 支持填中文账套名 / 账套号**：登录前自动通过 `GetDataCenterList` 解析成登录用的 `Id`（金蝶 WebAPI 登录 `acctID` = 数据中心 `Id`），已是 Id 则原样透传。
+### 登录信息切换（`kingdee_switch_login`，推荐）
+
+一个工具切换**任意组合**，切换后立即重置会话、下一次 API 调用自动用新配置重登：
+
+| 参数 | 说明 |
+|---|---|
+| `server_url` | 金蝶服务器地址（可传裸地址，自动补 `/k3cloud/`） |
+| `data_center` | 账套：**中文名 / 账套号 / Id** 均可（如 `预生产`、`TEST20230518`） |
+| `username` / `password` | 账号密码（password 模式） |
+| `auth_mode` | `password` 账号密码 \| `app_secret` 应用授权 |
+| `app_id` / `app_secret` | 应用授权凭据 |
+| `lcid` | 登录语言，**默认 2052 中文(简体)** |
+| `persist` | `True` 时写回 `~/.workbuddy/mcp.json`，重启后仍生效 |
+| `verify` | `True`（默认）时立即试登录一次并报告结果 |
+
+配套工具：
+
+- **`kingdee_show_login_info`**：查看当前连接/登录配置，密码与 AppSecret 一律脱敏。
+- **`kingdee_test_login`**：用当前配置立即登录一次，验证并重连。
+- **`kingdee_list_data_centers`**：列出服务器上所有账套（中文名 / 账套号 / 登录 Id / 数据库类型 / 认证方式 / 支持语言），**无需登录**即可调用。
+- **`kingdee_switch_data_center(identifier)`**：只切换账套的便捷包装（等价 `switch_login(data_center=...)`）。
+- **`kingdee_list_login_languages`**：按需查询当前账套支持的登录语言（默认中文 2052，一般不用调）。
+
+`KINGDEE_ACCT_ID` 支持直接填**中文账套名 / 账套号**，登录前自动解析成登录用的 `Id`（金蝶 WebAPI 登录 `acctID` = 数据中心 `Id`），已是 Id 则原样透传。
+
+### 语言（LCID）映射
+
+内置 **412 条 LCID 映射**（`_LCID_NAMES_ZH` / `_LCID_NAMES_EN`），常用：`2052=中文(简体)`（默认）、`1033=英语(美国)`、`3076=中文(繁體·香港)`、`1028=中文(繁體·台灣)`。
+账套支持哪些语言**直接从 `GetDataCenterList` 返回的 `LocaleValueName` 推导**，无需额外请求。
+
+### 网络韧性（保证会话不中断）
+
+`_NET_RETRY`（默认 3 次，可用 `KINGDEE_NET_RETRY` 调整）+ 线性退避：网络超时 / 5xx / 会话失效时自动重登并重发。
+会话失效采用**精确判定**（明确失效措辞 + 401/419），不会因正常响应里出现 `SessionId` 字样就白白重登。
 
 ## 功能特性
 
-- **97 个工具**：覆盖生产、成本、资产、审计、采购、销售、库存、财务报表等 13+ 业务域（清单见下文，权威来源 `server.py`）。
+- **103 个工具**：覆盖生产、成本、资产、审计、采购、销售、库存、财务报表等 13+ 业务域（清单见下文，权威来源 `server.py`）。
+- **登录信息全量运行时切换**：服务器 / 账套 / 账号 / 密码 / 登录方式 / AppID / AppSecret / 语言，切换即重连。
 - **双登录**：账号密码 / 应用授权，一键切换。
 - **账套（数据中心）管理**：列表 + 中文名/账套号切换，AI 可直接说「切到预生产账套」。
 - **元数据动态查询**：`get_bill_template` / `validate_bill` / `refresh_metadata`，本地缓存。
@@ -123,7 +155,7 @@ python3 integrations/workbuddy/scripts/configure_kingdee_mcp.py \
 
 然后在 WorkBuddy「连接器管理 / 自定义 MCP」对 `kingdee` 点「信任/启用」，重启或重连 MCP。
 
-## 工具列表（共 97 个，由 `server.py` 自动提取）
+## 工具列表（共 103 个，由 `server.py` 自动提取）
 
 > 权威计数 = `server.py` 中 `@mcp.tool` 装饰器数量 = **97**。下文按业务域分组，完整定义见 `src/kingdee_mcp/server.py`。
 

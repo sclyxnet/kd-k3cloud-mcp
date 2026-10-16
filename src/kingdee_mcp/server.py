@@ -684,6 +684,8 @@ _EP = {
     # 数据中心（账套）列表：登录页下拉框用的就是这个，无需登录即可调用。
     # 返回体为 base64(gzip(json))，需先 base64 解再 gzip 解。
     "get_dc_list": "Kingdee.BOS.ServiceFacade.ServicesStub.Account.AccountService.GetDataCenterList.common.kdsvc",
+    # 登录语言列表（LCID）：登录页语言下拉框，返回 [{LocaleId, LocaleName, Alias, LicenseType}]。
+    "get_dc_langs": "Kingdee.BOS.ServiceFacade.ServicesStub.Account.AccountService.GetDataCenterLoginLanguages.common.kdsvc",
 }
 
 # Session 缓存（避免每次请求都重新登录）
@@ -1693,12 +1695,16 @@ async def _login() -> str:
 # ─────────────────────────────────────────────
 # 登录页下拉框用的就是这个接口，无需登录即可调用。
 # 返回体是 base64(gzip(json))：先 base64 解，再 gzip 解，再 json。
-# 实测（39.103.166.148）响应为账套对象数组，每个含：
+# 实测（私有云环境）响应为账套对象数组，每个含：
 #   Id(string, 登录用 acctID) / Number(账套号) / Name(中文名) /
 #   LocaleValueName[{Key:2052,Value:中文名}] / DBType / AuthenticationMethods[{Name}]
 _DC_CACHE: Optional[list] = None
 _DC_CACHE_TS: float = 0.0
 _DC_CACHE_TTL: float = 300.0  # 5 分钟内复用，避免每次切换都打网络
+
+# 登录语言列表缓存（GetDataCenterLoginLanguages）
+_LANG_CACHE: Optional[list] = None
+_LANG_CACHE_TS: float = 0.0
 
 
 def _decode_dc_body(raw: bytes) -> Any:
@@ -1716,8 +1722,20 @@ def _decode_dc_body(raw: bytes) -> Any:
         return {"kd_error": True, "message": txt[:2000]}
 
 
-async def _fetch_data_center_list(force: bool = False) -> list:
-    """调用 GetDataCenterList（无需登录），返回账套原始对象列表。"""
+async def _fetch_data_center_list(force: bool = False, base_url: Optional[str] = None) -> list:
+    """调用 GetDataCenterList（无需登录），返回账套原始对象列表。
+
+    base_url 可临时覆盖 SERVER_URL：用于「切换服务器时先在目标机上取账套列表」，
+    取完还原当前 SERVER_URL，不影响既有会话与缓存。
+    """
+    global SERVER_URL
+    if base_url:
+        saved = SERVER_URL
+        SERVER_URL = base_url
+        try:
+            return await _fetch_data_center_list(force=True)
+        finally:
+            SERVER_URL = saved
     global _DC_CACHE, _DC_CACHE_TS
     now = time.time()
     if not force and _DC_CACHE is not None and (now - _DC_CACHE_TS) < _DC_CACHE_TTL:
@@ -1775,8 +1793,112 @@ async def _fetch_data_center_list(force: bool = False) -> list:
     return dcs
 
 
+async def _fetch_login_languages(force: bool = False, base_url: Optional[str] = None,
+                               acct_id: Optional[str] = None) -> list:
+    """调用 GetDataCenterLoginLanguages（无需登录），返回登录可选语言列表。
+
+    请求体（2026-10-16 抓包实测）：``{"ap0":"<数据中心Id>","ap1":"3","ap2":"zh-CN"}``，
+    ap0 = 数据中心 Id（即 KINGDEE_ACCT_ID），ap1 = 3（DBType，SQL Server），
+    ap2 = 语言标签（zh-CN）。
+    返回体为 base64(gzip(json))，形如
+    ``[{"LocaleId":2052,"LocaleName":"中文(简体)","Alias":"CN","LicenseType":3}]``，
+    其中 LocaleId 即 KINGDEE_LCID（登录语言）。
+
+    base_url / acct_id 可临时覆盖，用于「切换服务器/账套时先在目标环境取语言列表」。
+    """
+    global _LANG_CACHE, _LANG_CACHE_TS, SERVER_URL
+    now = time.time()
+    if not base_url and not acct_id and _LANG_CACHE is not None \
+            and (now - _LANG_CACHE_TS) < _DC_CACHE_TTL and not force:
+        return _LANG_CACHE
+
+    effective_url = (base_url or SERVER_URL).rstrip("/")
+    effective_acct = acct_id or ACCT_ID
+    clientinfo = json.dumps({
+        "ipAddress": "00000000-0000-0000-0000-000000000000",
+        "macAddress": "00000000-0000-0000-0000-000000000000",
+        "hostName": "00000000-0000-0000-0000-000000000000",
+        "IsDefaultInfo": False,
+        "IpAddress": "00000000-0000-0000-0000-000000000000",
+        "MacAddress": "00000000-0000-0000-0000-000000000000",
+        "HostName": "00000000-0000-0000-0000-000000000000",
+        "OperationSystem": "", "BrowserType": "win|chrome|140.0.0.0",
+        "Version": "HTML5", "ClientType": 16, "vH": 595, "vW": 1697,
+        "AvailableAreaSize": {"Height": 595, "Width": 1692},
+        "ScreenSize": {"Height": 960, "Width": 1707},
+        "EntryPageUrl": effective_url + "/html5/index.aspx",
+        "customArgs": "", "Gsid": "0", "TRLevel": 1,
+    }, ensure_ascii=False)
+    body = {
+        "ap0": effective_acct or "",
+        "ap1": "3",
+        "ap2": "zh-CN",
+        "nonce": "", "v": "1.0", "format": "1", "sign": "",
+        "timestamp": '"' + time.strftime("%Y-%m-%dT%H:%M:%S.") + "000Z" + '"',
+        "compressed": True, "compressedapx": True, "useragent": "KD.HTML5.GZIP",
+        "clientinfo": clientinfo,
+        "forminfo": "H4sIAAAAAAAAA1M1d1I1MipOzi9IBdKqxo5A0sUzLD4lKb8CJGDuAgAtLVt8IgAAAA%3D%3D",
+    }
+    cookie_sid = uuid.uuid4().hex
+    headers = {
+        "accept": "*/*",
+        "accept-language": "zh-CN,zh;q=0.9",
+        "content-type": "text/json",
+        "kdbiz-info": json.dumps({"m": "zh-CN"}),
+        "kdservice-sessionid": "v",
+        "theme": "standard",
+        "x-requested-with": "XMLHttpRequest",
+        "Referer": effective_url + "/html5/index.aspx",
+        "cookie": f"ASP.NET_SessionId={cookie_sid}; kdservice-sessionid={cookie_sid}",
+    }
+
+    saved = SERVER_URL
+    SERVER_URL = effective_url
+    try:
+        async with httpx.AsyncClient(timeout=30, proxy=None,
+                                     transport=httpx.AsyncHTTPTransport(http1=True)) as client:
+            resp = await client.post(
+                SERVER_URL.rstrip("/") + "/" + _EP["get_dc_langs"],
+                json=body, headers=headers,
+            )
+            resp.raise_for_status()
+            data = _decode_dc_body(resp.content)
+    finally:
+        SERVER_URL = saved
+
+    langs = data if isinstance(data, list) else []
+    if not base_url and not acct_id:
+        _LANG_CACHE = langs
+        _LANG_CACHE_TS = now
+    return langs
+
+
+def _match_language(langs: list, name: str) -> Optional[dict]:
+    """按语言名 / Alias / LocaleId 匹配登录语言。"""
+    key = (name or "").strip().lower()
+    if not key:
+        return None
+    norm = []
+    for lg in langs:
+        if not isinstance(lg, dict):
+            continue
+        norm.append({
+            "lg": lg,
+            "lcid": str(lg.get("LocaleId", "")).lower(),
+            "name": str(lg.get("LocaleName", "")).lower(),
+            "alias": str(lg.get("Alias", "")).lower(),
+        })
+    for n in norm:
+        if key in (n["lcid"], n["name"], n["alias"]):
+            return n["lg"]
+    # 宽松：中文/英文/简体/繁体 等片段
+    for n in norm:
+        if key in n["name"] or key in n["alias"]:
+            return n["lg"]
+    return None
+
+
 def _match_data_center(dcs: list, identifier: str) -> Optional[dict]:
-    """按 Id / Number / Name(2052) 精确匹配，再按中文名片段宽松匹配。"""
     key = (identifier or "").strip().lower()
     if not key:
         return None
@@ -1840,8 +1962,256 @@ async def _resolve_acct_id(raw: str) -> str:
 
 
 # ─────────────────────────────────────────────
-# 数据中心（账套）工具：列表 / 切换
+# 连接 / 登录信息管理：查看、切换、重连
 # ─────────────────────────────────────────────
+_AUTH_MODES = ("password", "app_secret")
+
+# 常用 LCID（区域/语言码）→ 语言名。Windows/金蝶通用，登录语言(LCID)即用此映射识读。
+# 覆盖常见中英文及繁体；未列出的 LCID 显示为 "LCID <n>（未知语言）"。
+# 常用 LCID（区域/语言码）→ 语言名。Windows/金蝶通用，登录语言(LCID)即用此映射识读。
+# _LCID_NAMES_EN 为权威全量表（890 条，源自 Windows/MS-LCID 体系，英文名），
+# _LCID_NAMES_ZH 为常见语言的中文名（覆盖中英及主要语种），未知语言退化为英文名。
+_LCID_NAMES_EN = {
+    1: "Arabic", 2: "Bulgarian", 3: "Catalan", 4: "Chinese (Simplified)",
+    5: "Czech", 6: "Danish", 7: "German", 8: "Greek",
+    9: "English", 10: "Spanish", 11: "Finnish", 12: "French",
+    13: "Hebrew", 14: "Hungarian", 15: "Icelandic", 16: "Italian",
+    17: "Japanese", 18: "Korean", 19: "Dutch", 20: "Norwegian",
+    21: "Polish", 22: "Portuguese", 23: "Romansh", 24: "Romanian",
+    25: "Russian", 26: "Croatian", 27: "Slovak", 28: "Albanian",
+    29: "Swedish", 30: "Thai", 31: "Turkish", 32: "Urdu",
+    33: "Indonesian", 34: "Ukrainian", 35: "Belarusian", 36: "Slovenian",
+    37: "Estonian", 38: "Latvian", 39: "Lithuanian", 40: "Tajik",
+    41: "Persian", 42: "Vietnamese", 43: "Armenian", 44: "Azerbaijani",
+    45: "Basque", 46: "Upper Sorbian", 47: "Macedonian", 48: "Sesotho",
+    49: "Xitsonga", 50: "Setswana", 51: "Venda", 52: "isiXhosa",
+    53: "isiZulu", 54: "Afrikaans", 55: "Georgian", 56: "Faroese",
+    57: "Hindi", 58: "Maltese", 59: "Northern Sami", 60: "Irish",
+    61: "Yiddish", 62: "Malay", 63: "Kazakh", 64: "Kyrgyz",
+    65: "Kiswahili", 66: "Turkmen", 67: "Uzbek", 68: "Tatar",
+    69: "Bangla", 70: "Punjabi", 71: "Gujarati", 72: "Odia",
+    73: "Tamil", 74: "Telugu", 75: "Kannada", 76: "Malayalam",
+    77: "Assamese", 78: "Marathi", 79: "Sanskrit", 80: "Mongolian",
+    81: "Tibetan", 82: "Welsh", 83: "Khmer", 84: "Lao",
+    85: "Burmese", 86: "Galician", 87: "Konkani", 88: "Manipuri",
+    89: "Sindhi", 90: "Syriac", 91: "Sinhala", 92: "Cherokee",
+    93: "Inuktitut", 94: "Amharic", 95: "Central Atlas Tamazight", 96: "Kashmiri",
+    97: "Nepali", 98: "Western Frisian", 99: "Pashto", 100: "Filipino",
+    101: "Divehi", 102: "Edo", 103: "Fula", 104: "Hausa",
+    105: "Ibibio", 106: "Yoruba", 108: "Sesotho sa Leboa", 109: "Bashkir",
+    110: "Luxembourgish", 111: "Kalaallisut", 112: "Igbo", 113: "Kanuri",
+    114: "Oromo", 115: "Tigrinya", 116: "Guarani", 117: "Hawaiian",
+    118: "Latin", 119: "Somali", 120: "Yi", 121: "Papiamento",
+    122: "Mapuche", 124: "Mohawk", 126: "Breton", 127: "Invariant Language (Invariant Country)",
+    128: "Uyghur", 129: "Māori", 130: "Occitan", 131: "Corsican",
+    132: "Swiss German", 133: "Yakut", 134: "Kʼicheʼ", 135: "Kinyarwanda",
+    136: "Wolof", 145: "Scottish Gaelic", 1025: "Arabic (Saudi Arabia)", 1026: "Bulgarian (Bulgaria)",
+    1027: "Catalan (Spain)", 1029: "Czech (Czechia)", 1030: "Danish (Denmark)", 1031: "German (Germany)",
+    1032: "Greek (Greece)", 1033: "English (United States)", 1035: "Finnish (Finland)", 1036: "French (France)",
+    1037: "Hebrew (Israel)", 1038: "Hungarian (Hungary)", 1039: "Icelandic (Iceland)", 1040: "Italian (Italy)",
+    1041: "Japanese (Japan)", 1042: "Korean (Korea)", 1043: "Dutch (Netherlands)", 1044: "Norwegian Bokmål (Norway)",
+    1045: "Polish (Poland)", 1046: "Portuguese (Brazil)", 1047: "Romansh (Switzerland)", 1048: "Romanian (Romania)",
+    1049: "Russian (Russia)", 1050: "Croatian (Croatia)", 1051: "Slovak (Slovakia)", 1052: "Albanian (Albania)",
+    1053: "Swedish (Sweden)", 1054: "Thai (Thailand)", 1055: "Turkish (Türkiye)", 1056: "Urdu (Pakistan)",
+    1057: "Indonesian (Indonesia)", 1058: "Ukrainian (Ukraine)", 1059: "Belarusian (Belarus)", 1060: "Slovenian (Slovenia)",
+    1061: "Estonian (Estonia)", 1062: "Latvian (Latvia)", 1063: "Lithuanian (Lithuania)", 1065: "Persian (Iran)",
+    1066: "Vietnamese (Vietnam)", 1067: "Armenian (Armenia)", 1068: "Azerbaijani (Latin, Azerbaijan)", 1069: "Basque (Spain)",
+    1070: "Upper Sorbian (Germany)", 1071: "Macedonian (North Macedonia)", 1072: "Sesotho (South Africa)", 1073: "Xitsonga (South Africa)",
+    1074: "Setswana (South Africa)", 1075: "Venda (South Africa)", 1076: "isiXhosa (South Africa)", 1077: "isiZulu (South Africa)",
+    1078: "Afrikaans (South Africa)", 1079: "Georgian (Georgia)", 1080: "Faroese (Faroe Islands)", 1081: "Hindi (India)",
+    1082: "Maltese (Malta)", 1083: "Northern Sami (Norway)", 1085: "Yiddish (world)", 1086: "Malay (Malaysia)",
+    1087: "Kazakh (Kazakhstan)", 1088: "Kyrgyz (Kyrgyzstan)", 1089: "Kiswahili (Kenya)", 1090: "Turkmen (Turkmenistan)",
+    1091: "Uzbek (Latin, Uzbekistan)", 1092: "Tatar (Russia)", 1093: "Bangla (India)", 1095: "Gujarati (India)",
+    1096: "Odia (India)", 1097: "Tamil (India)", 1098: "Telugu (India)", 1099: "Kannada (India)",
+    1100: "Malayalam (India)", 1101: "Assamese (India)", 1102: "Marathi (India)", 1103: "Sanskrit (India)",
+    1104: "Mongolian (Mongolia)", 1105: "Tibetan (China)", 1106: "Welsh (United Kingdom)", 1107: "Khmer (Cambodia)",
+    1108: "Lao (Laos)", 1109: "Burmese (Myanmar)", 1110: "Galician (Spain)", 1111: "Konkani (India)",
+    1113: "Sindhi (Devanagari, India)", 1114: "Syriac (Syria)", 1115: "Sinhala (Sri Lanka)", 1118: "Amharic (Ethiopia)",
+    1119: "Central Atlas Tamazight (Arabic, Morocco)", 1120: "Kashmiri (Arabic)", 1121: "Nepali (Nepal)", 1122: "Western Frisian (Netherlands)",
+    1123: "Pashto (Afghanistan)", 1124: "Filipino (Philippines)", 1125: "Divehi (Maldives)", 1126: "Edo (Nigeria)",
+    1129: "Ibibio (Nigeria)", 1130: "Yoruba (Nigeria)", 1132: "Sesotho sa Leboa (South Africa)", 1133: "Bashkir (Russia)",
+    1134: "Luxembourgish (Luxembourg)", 1135: "Kalaallisut (Greenland)", 1136: "Igbo (Nigeria)", 1138: "Oromo (Ethiopia)",
+    1139: "Tigrinya (Ethiopia)", 1140: "Guarani (Paraguay)", 1141: "Hawaiian (United States)", 1143: "Somali (Somalia)",
+    1144: "Yi (China)", 1145: "Papiamento (Caribbean)", 1146: "Mapuche (Chile)", 1148: "Mohawk (Canada)",
+    1150: "Breton (France)", 1152: "Uyghur (China)", 1153: "Māori (New Zealand)", 1154: "Occitan (France)",
+    1155: "Corsican (France)", 1156: "Swiss German (France)", 1157: "Yakut (Russia)", 1159: "Kinyarwanda (Rwanda)",
+    1160: "Wolof (Senegal)", 1169: "Scottish Gaelic (United Kingdom)", 2049: "Arabic (Iraq)", 2055: "German (Switzerland)",
+    2057: "English (United Kingdom)", 2058: "Spanish (Mexico)", 2060: "French (Belgium)", 2064: "Italian (Switzerland)",
+    2067: "Dutch (Belgium)", 2068: "Norwegian Nynorsk (Norway)", 2070: "Portuguese (Portugal)", 2072: "Romanian (Moldova)",
+    2073: "Russian (Moldova)", 2077: "Swedish (Finland)", 2080: "Urdu (India)", 2092: "Azerbaijani (Cyrillic, Azerbaijan)",
+    2094: "Lower Sorbian (Germany)", 2098: "Setswana (Botswana)", 2107: "Northern Sami (Sweden)", 2108: "Irish (Ireland)",
+    2110: "Malay (Brunei)", 2115: "Uzbek (Cyrillic, Uzbekistan)", 2117: "Bangla (Bangladesh)", 2118: "Punjabi (Arabic, Pakistan)",
+    2121: "Tamil (Sri Lanka)", 2128: "Mongolian (Mongolian, China)", 2137: "Sindhi (Arabic, Pakistan)", 2141: "Inuktitut (Latin, Canada)",
+    2144: "Kashmiri (Devanagari, India)", 2145: "Nepali (India)", 2151: "Fula (Latin, Senegal)", 2163: "Tigrinya (Eritrea)",
+    3073: "Arabic (Egypt)", 3079: "German (Austria)", 3081: "English (Australia)", 3082: "Spanish (Spain)",
+    3084: "French (Canada)", 3131: "Northern Sami (Finland)", 3152: "Mongolian (Mongolian, Mongolia)", 3153: "Dzongkha (Bhutan)",
+    4097: "Arabic (Libya)", 4103: "German (Luxembourg)", 4105: "English (Canada)",
+    4106: "Spanish (Guatemala)", 4108: "French (Switzerland)", 4122: "Croatian (Bosnia & Herzegovina)", 4155: "Lule Sami (Norway)",
+    4191: "Central Atlas Tamazight (Tifinagh, Morocco)", 5121: "Arabic (Algeria)", 5127: "German (Liechtenstein)", 5129: "English (New Zealand)",
+    5130: "Spanish (Costa Rica)", 5132: "French (Luxembourg)", 5146: "Bosnian (Latin, Bosnia & Herzegovina)", 5179: "Lule Sami (Sweden)",
+    6145: "Arabic (Morocco)", 6153: "English (Ireland)", 6154: "Spanish (Panama)", 6156: "French (Monaco)",
+    6170: "Serbian (Latin, Bosnia & Herzegovina)", 6203: "Southern Sami (Norway)", 7169: "Arabic (Tunisia)", 7177: "English (South Africa)",
+    7178: "Spanish (Dominican Republic)", 7180: "French (Caribbean)", 7194: "Serbian (Cyrillic, Bosnia & Herzegovina)", 7227: "Southern Sami (Sweden)",
+    8193: "Arabic (Oman)", 8201: "English (Jamaica)", 8202: "Spanish (Venezuela)", 8204: "French (Réunion)",
+    8218: "Bosnian (Cyrillic, Bosnia & Herzegovina)", 8251: "Skolt Sami (Finland)", 9217: "Arabic (Yemen)", 9225: "English (Caribbean)",
+    9226: "Spanish (Colombia)", 9228: "French (Congo [DRC])", 9242: "Serbian (Latin, Serbia)", 9275: "Inari Sami (Finland)",
+    10241: "Arabic (Syria)", 10249: "English (Belize)", 10250: "Spanish (Peru)", 10252: "French (Senegal)",
+    10266: "Serbian (Cyrillic, Serbia)", 11265: "Arabic (Jordan)", 11273: "English (Trinidad & Tobago)", 11274: "Spanish (Argentina)",
+    11276: "French (Cameroon)", 11290: "Serbian (Latin, Montenegro)", 12289: "Arabic (Lebanon)", 12297: "English (Zimbabwe)",
+    12298: "Spanish (Ecuador)", 12300: "French (Côte d’Ivoire)", 12314: "Serbian (Cyrillic, Montenegro)", 13313: "Arabic (Kuwait)",
+    13321: "English (Philippines)", 13322: "Spanish (Chile)", 13324: "French (Mali)", 14337: "Arabic (United Arab Emirates)",
+    14345: "English (Indonesia)", 14346: "Spanish (Uruguay)", 14348: "French (Morocco)", 15361: "Arabic (Bahrain)",
+    15369: "English (Hong Kong SAR)", 15370: "Spanish (Paraguay)", 15372: "French (Haiti)", 16385: "Arabic (Qatar)",
+    16393: "English (India)", 16394: "Spanish (Bolivia)", 17417: "English (Malaysia)", 17418: "Spanish (El Salvador)",
+    18441: "English (Singapore)", 18442: "Spanish (Honduras)", 19466: "Spanish (Nicaragua)", 20490: "Spanish (Puerto Rico)",
+    21514: "Spanish (United States)", 22538: "Spanish (Latin America)", 23562: "Spanish (Cuba)", 25626: "Bosnian (Cyrillic)",
+    26650: "Bosnian (Latin)", 27674: "Serbian (Cyrillic)", 28698: "Serbian (Latin)", 28731: "Inari Sami",
+    29740: "Azerbaijani (Cyrillic)", 29755: "Skolt Sami", 30724: "Chinese", 30740: "Norwegian Nynorsk",
+    30746: "Bosnian", 30764: "Azerbaijani (Latin)", 30779: "Southern Sami", 30787: "Uzbek (Cyrillic)",
+    30815: "Central Atlas Tamazight (Tifinagh)", 31748: "Chinese (Traditional)", 31764: "Norwegian Bokmål", 31770: "Serbian",
+    31790: "Lower Sorbian", 31803: "Lule Sami", 31811: "Uzbek (Latin)", 31814: "Punjabi (Arabic)",
+    31824: "Mongolian (Mongolian)", 31833: "Sindhi (Arabic)", 31837: "Inuktitut (Latin)", 31847: "Fula (Latin)",
+}
+
+# 常见 LCID 的中文名（_LCID_NAMES_EN 之外的补充；同时用于中文优先展示）
+_LCID_NAMES_ZH = {
+    1025: "阿拉伯语(沙特)", 1026: "保加利亚语", 1027: "加泰罗尼亚语", 1028: "中文(繁體)",
+    1029: "捷克语", 1030: "丹麦语", 1031: "德语(德国)", 1032: "希腊语",
+    1033: "英语(美国)", 1034: "西班牙语(西班牙)", 1035: "芬兰语", 1036: "法语(法国)",
+    1037: "希伯来语", 1038: "匈牙利语", 1039: "冰岛语", 1040: "意大利语(意大利)",
+    1041: "日语", 1042: "韩语", 1043: "荷兰语(荷兰)", 1045: "波兰语",
+    1046: "葡萄牙语(巴西)", 1048: "罗马尼亚语", 1049: "俄语", 1050: "克罗地亚语",
+    1051: "斯洛伐克语", 1052: "阿尔巴尼亚语", 1053: "瑞典语", 1054: "泰语",
+    1055: "土耳其语", 1056: "乌尔都语(巴基斯坦)", 1057: "印尼语", 1058: "乌克兰语",
+    1059: "白俄罗斯语", 1060: "斯洛文尼亚语", 1061: "爱沙尼亚语", 1062: "拉脱维亚语",
+    1063: "立陶宛语", 1064: "波斯尼亚语(西里尔)", 1065: "波斯语", 1066: "越南语",
+    1067: "亚美尼亚语", 1068: "阿塞拜疆语(拉丁)", 1069: "巴斯克语", 1070: "上索布语",
+    1071: "马其顿语", 1078: "南非荷兰语", 1079: "格鲁吉亚语", 1080: "法罗语",
+    1081: "印地语", 1085: "意第绪语", 1086: "马来语(马来西亚)", 1087: "哈萨克语",
+    1089: "斯瓦希里语", 1090: "土库曼语", 1091: "乌兹别克语(拉丁)", 1092: "鞑靼语",
+    1093: "孟加拉语(印度)", 1094: "旁遮普语(印度)", 1095: "古吉拉特语", 1096: "奥里亚语",
+    1097: "泰米尔语", 1098: "泰卢固语", 1099: "卡纳达语", 1100: "马拉雅拉姆语",
+    1102: "马拉地语", 1103: "梵语", 1104: "蒙古语(西里尔)", 1105: "藏语",
+    1106: "威尔士语", 1107: "高棉语", 1108: "老挝语", 1110: "加利西亚语",
+    1111: "孔卡尼语", 1113: "信德语", 1114: "阿塞拜疆语(西里尔)", 1115: "僧伽罗语",
+    1116: "科西嘉语", 1118: "阿姆哈拉语(埃塞)", 1125: "迪维希语", 1128: "豪萨语",
+    1131: "克丘亚语(玻利维亚)", 1132: "塞索托语", 1133: "巴什基尔语", 1134: "卢森堡语",
+    1135: "格陵兰语", 1136: "伊博语", 1140: "盖丘亚语", 1144: "瑶语(传统中国)",
+    1150: "布列塔尼语", 1153: "毛利语", 1157: "萨哈语", 1160: "沃洛夫语",
+    1164: "富拉语(拉丁)", 1170: "古基切语", 2049: "阿拉伯语(伊拉克)", 2052: "中文(简体)",
+    2055: "德语(瑞士)", 2057: "英语(英国)", 2058: "西班牙语(墨西哥)", 2060: "法语(比利时)",
+    2064: "意大利语(瑞士)", 2067: "荷兰语(比利时)", 2070: "葡萄牙语(葡萄牙)", 2074: "塞尔维亚语(拉丁)",
+    2077: "瑞典语(芬兰)", 2080: "乌尔都语(印度)", 2094: "下索布语", 2115: "乌兹别克语(西里尔)",
+    2117: "孟加拉语(孟加拉)", 2128: "蒙古语(传统)", 2155: "克丘亚语(厄瓜多尔)", 3073: "阿拉伯语(埃及)",
+    3076: "中文(繁體·香港)", 3079: "德语(奥地利)", 3082: "西班牙语(西班牙)", 3084: "法语(瑞士)",
+    3098: "塞尔维亚语(西里尔)", 3179: "克丘亚语(秘鲁)", 4097: "阿拉伯语(利比亚)", 4103: "德语(卢森堡)",
+    4105: "英语(加拿大)", 4106: "西班牙语(危地马拉)", 4108: "法语(加拿大)", 5121: "阿拉伯语(阿尔及利亚)",
+    5127: "德语(列支敦士登)", 5129: "英语(新西兰)", 5130: "西班牙语(哥斯达黎加)", 5132: "法语(卢森堡)",
+    5146: "波斯尼亚语(拉丁)", 6145: "阿拉伯语(摩洛哥)", 6153: "英语(爱尔兰)", 6154: "西班牙语(巴拿马)",
+    6156: "法语(摩纳哥)", 7169: "阿拉伯语(阿联酋)", 7177: "英语(南非)", 7178: "西班牙语(古巴)",
+    7180: "法语(加勒比)", 8193: "阿拉伯语(阿曼)", 8202: "法语(留尼汪)", 8204: "法语(海地)",
+    9226: "西班牙语(哥伦比亚)", 9228: "法语(刚果金)", 10241: "阿拉伯语(突尼斯)", 10250: "西班牙语(秘鲁)",
+    10252: "法语(马里)", 11265: "阿拉伯语(约旦)", 11274: "西班牙语(阿根廷)", 12281: "阿拉伯语(黎巴嫩)",
+    12298: "西班牙语(多米尼加)", 12300: "法语(科特迪瓦)", 13313: "阿拉伯语(科威特)", 13322: "西班牙语(智利)",
+    13324: "法语(摩洛哥)", 14337: "阿拉伯语(也门)", 15361: "阿拉伯语(巴林)", 15404: "西班牙语(巴拉圭)",
+    16385: "阿拉伯语(卡塔尔)", 16394: "西班牙语(玻利维亚)", 17418: "西班牙语(厄瓜多尔)", 18442: "西班牙语(萨尔瓦多)",
+    19466: "西班牙语(尼加拉瓜)", 20490: "西班牙语(波多黎各)", 21514: "西班牙语(美国)", 22538: "西班牙语(洪都拉斯)",
+}
+
+# 合并视图：中文名优先，未列出的用英文名
+_LCID_NAMES = {**_LCID_NAMES_EN, **_LCID_NAMES_ZH}
+
+# 登录默认语言：中文(简体)
+_DEFAULT_LCID = 2052
+
+
+def _lcid_name(lcid: Any) -> str:
+    """LCID → 语言名。中文名优先，其次英文名，未知则原样标注。"""
+    try:
+        n = int(lcid)
+    except Exception:
+        return f"LCID {lcid}（未知语言）"
+    if n in _LCID_NAMES_ZH:
+        return _LCID_NAMES_ZH[n]
+    if n in _LCID_NAMES_EN:
+        return _LCID_NAMES_EN[n]
+    return f"LCID {n}（未知语言）"
+
+
+def _dc_supported_languages(dc: dict) -> list:
+    """从数据中心数据推导支持的登录语言（LocaleValueName 的 Key 即 LCID）。
+
+    无需再请求 GetDataCenterLoginLanguages——账套名给出哪些语言版本，即代表这些语言可用。
+    返回按默认中文优先、其余升序排列的 [{"lcid":2052,"name":"中文(简体)"}, ...]。
+    """
+    if not isinstance(dc, dict):
+        return []
+    keys = []
+    for lv in (dc.get("LocaleValueName") or []):
+        if isinstance(lv, dict) and lv.get("Key") is not None:
+            try:
+                keys.append(int(lv.get("Key")))
+            except Exception:
+                continue
+    # 少数服务端会直接给语言字段，优先用之
+    for kk in ("Languages", "LanguageList", "LoginLanguages", "SupportedLanguages"):
+        if dc.get(kk):
+            langs = dc.get(kk) or []
+            out = []
+            for lg in langs:
+                if isinstance(lg, dict) and lg.get("LocaleId") is not None:
+                    out.append({"lcid": lg.get("LocaleId"),
+                                "name": lg.get("LocaleName") or _lcid_name(lg.get("LocaleId"))})
+            if out:
+                return out
+    uniq = sorted(set(keys))
+    uniq.sort(key=lambda k: (k != _DEFAULT_LCID, k))
+    return [{"lcid": k, "name": _lcid_name(k)} for k in uniq]
+
+
+def _mask_secret(value: Optional[str], keep: int = 0) -> str:
+    """脱敏：密码/AppSecret 一律不回显，只显示长度或前后若干字符。"""
+    if not value:
+        return "(未设置)"
+    if keep and len(value) > keep * 2:
+        return f"{value[:keep]}{'*' * 6}（已设置，{len(value)} 字符）"
+    return "******（已设置）"
+
+
+def _normalize_server_url(url: str) -> str:
+    """补齐 /k3cloud/ 后缀；允许传裸 host 或已带路径的地址。"""
+    u = (url or "").strip().rstrip("/")
+    if not u:
+        return u
+    if "/k3cloud" not in u.lower():
+        u = u + "/k3cloud"
+    return u + "/"
+
+
+def _reset_session() -> None:
+    """清空登录会话与元数据缓存，迫使下一次调用重新登录。"""
+    global _session_id
+    _session_id = None
+    try:
+        _METADATA_CACHE.clear()
+    except Exception:
+        pass
+
+
+def _current_login_snapshot() -> dict:
+    """当前连接/登录配置（密码脱敏），用于展示与切换前后对比。"""
+    return {
+        "server_url": SERVER_URL,
+        "acct_id": ACCT_ID,
+        "auth_mode": AUTH_MODE,
+        "username": USERNAME or "(未设置)",
+        "password": _mask_secret(PASSWORD),
+        "app_id": APP_ID or "(未设置)",
+        "app_secret": _mask_secret(APP_SEC),
+        "lcid": LCID,
+    }
+
+
 @mcp.tool()
 async def kingdee_list_data_centers() -> str:
     """列出当前金蝶服务器上所有可用的数据中心（账套）。
@@ -1866,23 +2236,316 @@ async def kingdee_list_data_centers() -> str:
             "id": dc.get("Id"),
             "db_type": dc.get("DBType"),
             "auth_methods": auths,
+            "supported_languages": _dc_supported_languages(dc),
         })
-    return _fmt({"count": len(out), "data_centers": out})
+    return _fmt({
+        "count": len(out),
+        "data_centers": out,
+        "current_lcid": LCID,
+        "default_lcid": _DEFAULT_LCID,
+        "hint": "切换账套：kingdee_switch_login(data_center=\"<中文名/账套号/Id>\")；"
+                "登录语言默认 2052 中文(简体)，如需切换另传 lcid。",
+    })
+
+
+@mcp.tool()
+async def kingdee_list_login_languages() -> str:
+    """按需查询：当前账套的登录界面支持哪些语言（默认中文 2052，一般不需要调用）。
+
+    仅在用户明确要切换登录语言时调用。实现走登录页语言下拉框接口
+    `AccountService.GetDataCenterLoginLanguages`（ap0=当前账套 Id），返回每个语言的
+    LocaleId（即 lcid）、LocaleName、Alias、LicenseType。
+    切换方式：kingdee_switch_login(lcid=<LocaleId>)。
+    """
+    try:
+        langs = await _fetch_login_languages(force=True)
+    except Exception as e:
+        return _fmt({"error": f"获取登录语言列表失败: {e}"})
+    out = []
+    for lg in langs:
+        if not isinstance(lg, dict):
+            continue
+        out.append({
+            "lcid": lg.get("LocaleId"),
+            "name": lg.get("LocaleName"),
+            "alias": lg.get("Alias"),
+            "license_type": lg.get("LicenseType"),
+        })
+    return _fmt({
+        "count": len(out),
+        "languages": out,
+        "current_lcid": LCID,
+        "default_lcid": _DEFAULT_LCID,
+        "hint": "切换登录语言：kingdee_switch_login(lcid=<LocaleId>)，不传则保持当前语言（默认 2052 中文简体）",
+    })
+
+
+def _persist_login_env() -> dict:
+    """把当前连接/登录配置写回 ~/.workbuddy/mcp.json 的 mcpServers.kingdee.env（持久化，可选）。"""
+    import os.path as _osp
+    cfg_path = _osp.join(_osp.expanduser("~"), ".workbuddy", "mcp.json")
+    if not _osp.exists(cfg_path):
+        return {"persisted": False, "path": cfg_path, "note": "mcp.json 不存在，跳过写入"}
+    try:
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+        srv = (cfg.setdefault("mcpServers", {})).setdefault("kingdee", {})
+        env = srv.setdefault("env", {})
+        env.update({
+            "KINGDEE_SERVER_URL": SERVER_URL,
+            "KINGDEE_ACCT_ID":    ACCT_ID,
+            "KINGDEE_AUTH_MODE":  AUTH_MODE,
+            "KINGDEE_USERNAME":   USERNAME,
+            "KINGDEE_LCID":       str(LCID),
+        })
+        if AUTH_MODE == "app_secret":
+            env["KINGDEE_APP_ID"] = APP_ID
+            env["KINGDEE_APP_SEC"] = APP_SEC
+        if PASSWORD:
+            env["KINGDEE_PASSWORD"] = PASSWORD
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, ensure_ascii=False, indent=2)
+        return {"persisted": True, "path": cfg_path}
+    except Exception as e:
+        return {"persisted": False, "path": cfg_path, "error": str(e)[:200]}
+
+
+@mcp.tool()
+async def kingdee_switch_login(
+    server_url: Optional[str] = None,
+    data_center: Optional[str] = None,
+    username: Optional[str] = None,
+    password: Optional[str] = None,
+    auth_mode: Optional[str] = None,
+    app_id: Optional[str] = None,
+    app_secret: Optional[str] = None,
+    lcid: Optional[int] = None,
+    persist: bool = False,
+    verify: bool = True,
+) -> str:
+    """切换金蝶连接与登录信息（服务器/账套/账号/密码/登录方式/应用授权/多语言），并重连。
+
+    所有参数可选，只改传了的项，其余沿用当前配置。切换后：
+      1) 立即重置登录会话 → 下一次 API 调用自动用新配置重新登录（即"重连"）；
+      2) verify=True（默认）时立即试登录一次并报告结果，失败会给出明确原因；
+      3) persist=True 时把新配置写回 ~/.workbuddy/mcp.json（重启后仍生效）。
+
+    Args:
+        server_url: 金蝶服务器地址，可传裸地址(如 http://your-kingdee-host)或完整地址；
+                    不含 /k3cloud/ 会自动补齐。
+        data_center: 账套。可用中文账套名 / 账套号(Number) / 登录 Id，例如"预生产""TEST20230518"；
+                     支持片段模糊匹配，会在（切换后的）服务器上取账套列表解析成登录 Id。
+        username:    金蝶账号（password 模式）。
+        password:    金蝶账号密码（password 模式）。
+        auth_mode:   登录方式：`password`(默认) | `app_secret`。
+        app_id:      第三方应用 AppId（app_secret 模式）。
+        app_secret:  第三方应用 AppSecret（app_secret 模式）。
+        lcid:        登录语言，默认 2052（中文(简体)）。切换时若未指定则保持当前语言不变；
+                     如需切换，重新调用并传 lcid，可先用 kingdee_list_login_languages 查看支持哪些语言。
+        persist:     是否把新配置写回 mcp.json（默认 False，仅运行时生效）。
+        verify:      是否切换后立即试登录验证（默认 True）。
+    """
+    global SERVER_URL, ACCT_ID, USERNAME, PASSWORD, AUTH_MODE, APP_ID, APP_SEC, LCID
+    global _DC_CACHE, _DC_CACHE_TS, _LANG_CACHE, _LANG_CACHE_TS
+
+    old = _current_login_snapshot()
+    # 新配置 = 当前配置 + 本次传入覆盖
+    new = {
+        "server_url": SERVER_URL,
+        "acct_id":    ACCT_ID,
+        "auth_mode":  AUTH_MODE,
+        "username":   USERNAME,
+        "password":   PASSWORD,
+        "app_id":     APP_ID,
+        "app_secret": APP_SEC,
+        "lcid":       LCID,
+    }
+
+    if not any([server_url, data_center, username, password, auth_mode,
+                app_id, app_secret, lcid is not None, persist]):
+        return _fmt({
+            "switched": False,
+            "error": "未传入任何要切换的项。可用参数：server_url / data_center / username / password / "
+                     "auth_mode / app_id / app_secret / lcid。用 kingdee_show_login_info 查看当前配置。",
+            "current": old,
+        })
+
+    if server_url is not None:
+        new["server_url"] = _normalize_server_url(server_url)
+    if auth_mode is not None:
+        mode = str(auth_mode).strip().lower()
+        if mode not in _AUTH_MODES:
+            return _fmt({"switched": False, "error": f"auth_mode 只能是 {_AUTH_MODES}，收到：{auth_mode}"})
+        new["auth_mode"] = mode
+    if username is not None:
+        new["username"] = username.strip()
+    if password is not None:
+        new["password"] = password
+    if app_id is not None:
+        new["app_id"] = app_id.strip()
+    if app_secret is not None:
+        new["app_secret"] = app_secret
+    if lcid is not None:
+        try:
+            new["lcid"] = int(lcid)
+        except Exception:
+            return _fmt({"switched": False, "error": f"lcid 必须是整数，收到：{lcid}"})
+
+    # data_center 解析需在目标服务器上进行（可能刚换了 server_url）
+    dc_info = None
+    if data_center is not None:
+        try:
+            dcs = await _fetch_data_center_list(force=True, base_url=new["server_url"])
+        except Exception as e:
+            return _fmt({"switched": False, "error": f"无法连接 {new['server_url']} 获取账套列表: {e}"})
+        m = _match_data_center(dcs, data_center)
+        if not m:
+            avail = [{"name": d.get("Name"), "number": d.get("Number"), "id": d.get("Id")}
+                     for d in dcs if isinstance(d, dict)]
+            return _fmt({
+                "switched": False,
+                "error": f"未找到匹配“{data_center}”的账套，请先用 kingdee_list_data_centers 查看可选列表",
+                "available": avail,
+            })
+        new["acct_id"] = str(m.get("Id"))
+        dc_info = {
+            "name": m.get("Name"),
+            "number": m.get("Number"),
+            "id": m.get("Id"),
+            "supported_languages": _dc_supported_languages(m),
+        }
+
+    # 切换后配置完整性检查（缺项直接报错，不落盘生效）
+    if new["auth_mode"] == "password" and not (new["username"] and new["password"]):
+        return _fmt({
+            "switched": False,
+            "error": "password 模式需要同时配置 username 与 password；当前缺失："
+                     + "、".join([k for k in ("username", "password") if not new[k]]),
+        })
+    if new["auth_mode"] == "app_secret" and not (new["app_id"] and new["app_secret"]):
+        return _fmt({
+            "switched": False,
+            "error": "app_secret 模式需要同时配置 app_id 与 app_secret；当前缺失："
+                     + "、".join([k for k in ("app_id", "app_secret") if not new[k]]),
+        })
+    if not new["acct_id"]:
+        return _fmt({"switched": False,
+                     "error": "账套没配置。请传 data_center（中文名/账套号/Id），或在此前先配置 KINGDEE_ACCT_ID。"})
+
+    # 原子应用
+    SERVER_URL = new["server_url"]
+    ACCT_ID    = new["acct_id"]
+    AUTH_MODE  = new["auth_mode"]
+    USERNAME   = new["username"]
+    PASSWORD   = new["password"]
+    APP_ID     = new["app_id"]
+    APP_SEC    = new["app_secret"]
+    LCID       = new["lcid"]
+    _DC_CACHE = None          # 换了服务器/账号，账套列表缓存作废
+    _DC_CACHE_TS = 0.0
+    _LANG_CACHE = None        # 语言列表缓存一并作废
+    _LANG_CACHE_TS = 0.0
+    _reset_session()          # → 下一次 API 调用自动用新配置重登
+
+    result = {
+        "switched": True,
+        "session": "已重置，下一次 API 调用将用新配置重新登录",
+        "before": old,
+        "after": _current_login_snapshot(),
+    }
+    if dc_info:
+        result["data_center"] = dc_info
+
+    login_ok = None
+    if verify:
+        try:
+            sid = await _login()
+            login_ok = True
+            result["login_ok"] = True
+            result["session_id_prefix"] = str(sid)[:8] + "..." if sid else None
+        except Exception as e:
+            login_ok = False
+            result["login_ok"] = False
+            result["login_error"] = str(e)[:300]
+
+    if persist:
+        result["persist"] = _persist_login_env()
+    elif login_ok:
+        result["persist_hint"] = "切换仅对当前进程生效；加 persist=True 可写回 ~/.workbuddy/mcp.json 使重启后仍生效。"
+    if lcid is None:
+        langs = None
+        if dc_info:
+            langs = dc_info.get("supported_languages")
+        result["language_question"] = (
+            f"是否需要切换登录语言？当前 lcid={LCID}"
+            f"（{_lcid_name(LCID)}），默认 2052 中文(简体)。"
+            "不需要就不传 lcid；需要就重新调用并传 lcid=..."
+        )
+        if langs:
+            result["supported_languages"] = langs
+            names = "、".join(f"{x['lcid']}={x['name']}" for x in langs)
+            result["language_question"] += f"。该账套支持的语言：{names}"
+    return _fmt(result)
+
+
+@mcp.tool()
+async def kingdee_show_login_info() -> str:
+    """查看当前金蝶连接与登录配置（密码/AppSecret 脱敏）。
+
+    返回：服务器地址、登录方式、账套 Id（并尽力解析出中文名）、用户名、是否已设密码/应用密钥、
+    语言 ID、当前会话状态。切换配置前可先调它确认现状。
+    """
+    info = _current_login_snapshot()
+    dc_name = None
+    try:
+        dcs = await _fetch_data_center_list()
+        m = _match_data_center(dcs, ACCT_ID)
+        if m:
+            dc_name = {"name": m.get("Name"), "number": m.get("Number"), "id": m.get("Id")}
+    except Exception:
+        pass
+    return _fmt({
+        "current": info,
+        "data_center": dc_name or "(未解析到，可用 kingdee_list_data_centers 查看)",
+        "session": "已登录" if _session_id else "未登录/会话已失效（下一次 API 调用会自动登录）",
+    })
+
+
+@mcp.tool()
+async def kingdee_test_login() -> str:
+    """用当前配置立即登录一次，验证连接/账套/账号/密码是否正确。成功即"重连成功"。"""
+    try:
+        sid = await _login()
+        return _fmt({
+            "login_ok": True,
+            "server_url": SERVER_URL,
+            "acct_id": ACCT_ID,
+            "auth_mode": AUTH_MODE,
+            "username": USERNAME or "(未设置)",
+            "session_id_prefix": str(sid)[:8] + "..." if sid else None,
+        })
+    except Exception as e:
+        return _fmt({
+            "login_ok": False,
+            "server_url": SERVER_URL,
+            "acct_id": ACCT_ID,
+            "auth_mode": AUTH_MODE,
+            "error": str(e)[:300],
+        })
 
 
 @mcp.tool()
 async def kingdee_switch_data_center(identifier: str) -> str:
-    """切换到指定数据中心（账套），并重置登录会话以便下次 API 调用自动用新账套重新登录。
+    """切换到指定数据中心（账套），并重置会话以便下一次 API 调用自动重连。
 
-    identifier 可用中文账套名、账套号(Number)或登录ID(Id)，例如“预生产”“TEST20260521”“6466ccc799e8fb”。
-    切换后 KINGDEE_ACCT_ID 在运行时被更新为新账套的 Id，原会话立即失效并触发重连；
-    后续所有单据/查询操作都会指向新账套。切换仅对当前 MCP 进程生效，如需永久生效请在
-    mcp.json 的 env.KINGDEE_ACCT_ID 中改为目标账套的 Id（或中文名，启动时会自动解析）。
+    identifier 可用中文账套名、账套号(Number)或登录ID(Id)，例如“预生产”“TEST20230518”“6466ccc799e8fb”。
+    本工具是 kingdee_switch_login(data_center=...) 的便捷包装；
+    如需同时切换服务器/账号/密码/登录方式，请改用 kingdee_switch_login。
 
     Args:
         identifier: 账套中文名 / Number / Id（任选其一，支持片段模糊匹配）
     """
-    global _session_id, ACCT_ID, _METADATA_CACHE
+    global ACCT_ID, _DC_CACHE, _DC_CACHE_TS
     try:
         dcs = await _fetch_data_center_list(force=True)
     except Exception as e:
@@ -1899,17 +2562,58 @@ async def kingdee_switch_data_center(identifier: str) -> str:
     new_id = str(m.get("Id"))
     old = ACCT_ID
     ACCT_ID = new_id
-    _session_id = None                       # 重置会话 → 下次调用自动重登
-    try:
-        _METADATA_CACHE.clear()              # 不同账套字段/表单可能不同，清缓存
-    except Exception:
-        pass
+    _DC_CACHE = None
+    _DC_CACHE_TS = 0.0
+    _reset_session()
     return _fmt({
         "switched": True,
         "from": old,
         "to": {"name": m.get("Name"), "number": m.get("Number"), "id": new_id},
         "session": "已重置，下一次 API 调用将用新账套重新登录",
     })
+
+
+# ─────────────────────────────────────────────
+# 会话韧性：断线重发 + 保活（保证会话不中断）
+# ─────────────────────────────────────────────
+# 网络抖动/超时/5xx/会话失效时，自动重登并重发，避免一次网络波动就让整次调用失败。
+_NET_RETRY = int(os.getenv("KINGDEE_NET_RETRY", "3"))          # 最大尝试次数
+_NET_RETRY_DELAY = float(os.getenv("KINGDEE_NET_RETRY_DELAY", "1.5"))  # 线性退避基数(秒)
+_TRANSIENT_ERRORS = (
+    httpx.TimeoutException,      # 连接/读写超时
+    httpx.NetworkError,          # ConnectError/ReadError/WriteError/CloseError 的基类
+    httpx.ProtocolError,         # 协议错误（含 RemoteProtocolError）
+    ConnectionError, TimeoutError,
+)
+_SESSION_EXPIRED_MARKERS = (
+    "会话已过期", "会话过期", "会话失效", "会话无效", "会话不存在",
+    "未登录", "请重新登录", "登录已失效", "登录状态失效",
+    "KDSVCSessionId为空", "SessionId为空", "sessionid为空",
+    "session expired", "session is invalid", "session has expired",
+    "not logged in", "unauthenticated",
+)
+
+
+def _is_session_expired(resp) -> bool:
+    """精确判定会话失效。
+
+    ⚠️ 不能用 `"session" in resp.text` 的宽松匹配：正常响应里只要出现
+    "SessionId"/"session" 等字样（字段名、备注）就会被误判为失效，导致每次调用
+    都白白重登一次。这里只认明确的失效措辞 + 401/419 状态码。
+    """
+    try:
+        if resp.status_code in (401, 419):
+            return True
+        if resp.status_code != 200:
+            return False
+        text = (resp.text or "")[:2000]
+        return any(m in text or m in text.lower() for m in _SESSION_EXPIRED_MARKERS)
+    except Exception:
+        return False
+
+
+async def _retry_sleep(attempt: int) -> None:
+    await asyncio.sleep(_NET_RETRY_DELAY * attempt)
 
 
 async def _post(ep_key: str, payload: Any) -> Any:
@@ -1955,23 +2659,38 @@ async def _post(ep_key: str, payload: Any) -> Any:
         try:
             async with httpx.AsyncClient(timeout=30, proxy=None,
                                           transport=httpx.AsyncHTTPTransport(http1=True)) as client:
-                # 没有 session 先登录
-                if not _session_id:
-                    await _login()
-
-                resp = await _do_post(_session_id)
-
-                # session 过期则重新登录重试一次
-                if resp.status_code == 401 or (
-                    resp.status_code == 200 and
-                    ("会话" in resp.text or "session" in resp.text.lower())
-                ):
-                    await _login()
-                    resp = await _do_post(_session_id)
-
-                resp.raise_for_status()
-                success = True
-                return _safe_json(resp)
+                last_err: Optional[Exception] = None
+                for attempt in range(1, _NET_RETRY + 1):
+                    try:
+                        # 没有 session 先登录（断线重发时会话已被置空，这里自动重登）
+                        if not _session_id:
+                            await _login()
+                        resp = await _do_post(_session_id)
+                        # 会话失效 → 置空重登后重发（精确判定，见 _is_session_expired）
+                        if _is_session_expired(resp):
+                            _session_id = None
+                            await _login()
+                            resp = await _do_post(_session_id)
+                        resp.raise_for_status()
+                        success = True
+                        return _safe_json(resp)
+                    except _TRANSIENT_ERRORS as e:
+                        # 网络层失败：置空会话重新发起（保证后续调用会话有效）
+                        _session_id = None
+                        last_err = e
+                        if attempt < _NET_RETRY:
+                            await _retry_sleep(attempt)
+                            continue
+                        raise
+                    except httpx.HTTPStatusError as e:
+                        last_err = e
+                        if e.response.status_code >= 500 and attempt < _NET_RETRY:
+                            if e.response.status_code in (502, 503, 504):
+                                _session_id = None      # 网关类错误，会话可能已被清
+                            await _retry_sleep(attempt)
+                            continue
+                        raise
+                raise last_err or RuntimeError("请求失败")
         except Exception as e:
             error_msg = str(e)[:200]
             raise
@@ -2017,23 +2736,38 @@ async def _post(ep_key: str, payload: Any) -> Any:
     try:
         async with httpx.AsyncClient(timeout=30, proxy=None,
                                       transport=httpx.AsyncHTTPTransport(http1=True)) as client:
-            # 没有 session 先登录
-            if not _session_id:
-                await _login()
-
-            resp = await _do_post(_session_id)
-
-            # session 过期则重新登录重试一次
-            if resp.status_code == 401 or (
-                resp.status_code == 200 and
-                ("会话" in resp.text or "session" in resp.text.lower())
-            ):
-                await _login()
-                resp = await _do_post(_session_id)
-
-            resp.raise_for_status()
-            success = True
-            return _safe_json(resp)
+            last_err: Optional[Exception] = None
+            for attempt in range(1, _NET_RETRY + 1):
+                try:
+                    # 没有 session 先登录（断线重发时会话已被置空，这里自动重登）
+                    if not _session_id:
+                        await _login()
+                    resp = await _do_post(_session_id)
+                    # 会话失效 → 置空重登后重发（精确判定，见 _is_session_expired）
+                    if _is_session_expired(resp):
+                        _session_id = None
+                        await _login()
+                        resp = await _do_post(_session_id)
+                    resp.raise_for_status()
+                    success = True
+                    return _safe_json(resp)
+                except _TRANSIENT_ERRORS as e:
+                    # 网络层失败：置空会话重新发起（保证后续调用会话有效）
+                    _session_id = None
+                    last_err = e
+                    if attempt < _NET_RETRY:
+                        await _retry_sleep(attempt)
+                        continue
+                    raise
+                except httpx.HTTPStatusError as e:
+                    last_err = e
+                    if e.response.status_code >= 500 and attempt < _NET_RETRY:
+                        if e.response.status_code in (502, 503, 504):
+                            _session_id = None      # 网关类错误，会话可能已被清
+                        await _retry_sleep(attempt)
+                        continue
+                    raise
+            raise last_err or RuntimeError("请求失败")
     except Exception as e:
         error_msg = str(e)[:200]
         raise
@@ -2125,24 +2859,8 @@ async def _post_raw(ep_key: str, form_id: str, model: dict,
     try:
         async with httpx.AsyncClient(timeout=30, proxy=None,
                                       transport=httpx.AsyncHTTPTransport(http1=True)) as client:
-            if not _session_id:
-                await _login()
-
-            resp = await client.post(
-                _url(ep_key),
-                content=body_str.encode("utf-8"),
-                headers={
-                    "Content-Type": "application/json; charset=utf-8",
-                    "Cookie": f"kdservice-sessionid={_session_id}",
-                },
-            )
-
-            if resp.status_code == 401 or (
-                resp.status_code == 200 and
-                ("会话" in resp.text or "session" in resp.text.lower())
-            ):
-                await _login()
-                resp = await client.post(
+            async def _send() -> httpx.Response:
+                return await client.post(
                     _url(ep_key),
                     content=body_str.encode("utf-8"),
                     headers={
@@ -2151,9 +2869,38 @@ async def _post_raw(ep_key: str, form_id: str, model: dict,
                     },
                 )
 
-            resp.raise_for_status()
-            success = True
-            return _safe_json(resp)
+            last_err: Optional[Exception] = None
+            for attempt in range(1, _NET_RETRY + 1):
+                try:
+                    # 没有 session 先登录（断线重发时会话已被置空，这里自动重登）
+                    if not _session_id:
+                        await _login()
+                    resp = await _send()
+                    # 会话失效 → 置空重登后重发（精确判定，见 _is_session_expired）
+                    if _is_session_expired(resp):
+                        _session_id = None
+                        await _login()
+                        resp = await _send()
+                    resp.raise_for_status()
+                    success = True
+                    return _safe_json(resp)
+                except _TRANSIENT_ERRORS as e:
+                    # 网络层失败：置空会话重新发起（写操作重发前已确保会话有效）
+                    _session_id = None
+                    last_err = e
+                    if attempt < _NET_RETRY:
+                        await _retry_sleep(attempt)
+                        continue
+                    raise
+                except httpx.HTTPStatusError as e:
+                    last_err = e
+                    if e.response.status_code >= 500 and attempt < _NET_RETRY:
+                        if e.response.status_code in (502, 503, 504):
+                            _session_id = None      # 网关类错误，会话可能已被清
+                        await _retry_sleep(attempt)
+                        continue
+                    raise
+            raise last_err or RuntimeError("请求失败")
     except Exception as e:
         error_msg = str(e)[:200]
         raise
@@ -4506,8 +5253,9 @@ async def kingdee_create_lx_billing(params: CreateLxBillingInput) -> str:
 
 class UserQueryInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
-    filter_string: str = Field(default="", description="过滤条件，如 \"FUserID.FNumber='admin'\"")
-    field_keys: str = Field(default="FUserID,FName,FNumber,FDepartment.FName,FIsActive", description="返回字段")
+    filter_string: str = Field(default="", description="过滤条件，如 \"FName='Administrator'\"")
+    # 真机实测（TEST20230518）：SEC_User 的可用字段为 FUserId/FName/FEMail
+    field_keys: str = Field(default="FUserId,FName,FEMail", description="返回字段")
     start_row: int = Field(default=0, ge=0, description="分页起始行")
     limit: int = Field(default=20, ge=1, le=100, description="每页条数")
 
@@ -4556,8 +5304,61 @@ def _system_query_payload(form_id: str, field_keys: str, filter_string: str, sta
     return [form_id, {"FieldKeys": field_keys, "FilterString": filter_string, "StartRow": start_row, "Limit": limit}]
 
 
+# ── 专用服务端点不可用时的降级表单（真机实测 2026-10-16，TEST20230518）──────────
+# Kingdee 部分版本没有 *Service 专用端点（实测报 "...Service no found"，
+# 错误里带 "no found" 字样）。这些查询降级为通用 ExecuteBillQuery + 业务对象表单。
+# None = 该账套无对应业务对象，只能给出明确报错（不再把底层堆栈抛给调用方）。
+_SYSTEM_SERVICE_FALLBACK_FORM = {
+    "user": "SEC_User",        # 实测可查：ExecuteBillQuery(SEC_User) → [[100,"Guest"," "],...]
+    "role": None,
+    "permission": None,
+    "sequence": None,
+    "number_rule": None,
+    "sysconfig": None,
+}
+
+
+def _is_service_not_found(data: Any) -> bool:
+    """判定是否「专用服务端点不存在」（金蝶以 HTTP 200 + 文本报文返回）。"""
+    if not isinstance(data, dict):
+        return False
+    text = json.dumps(data, ensure_ascii=False)[:600]
+    return "no found" in text
+
+
 async def _post_system(ep_key: str, form_id: str, field_keys: str, filter_string: str, start_row: int, limit: int) -> Any:
-    return await _post(ep_key, _system_query_payload(form_id, field_keys, filter_string, start_row, limit))
+    """查询用户/角色/权限等系统类数据；专用服务不可用时自动降级到 ExecuteBillQuery。
+
+    真机实测：UserService/RoleService/PermissionService/SequenceRuleService/
+    NumberRuleService/SystemConfigService 在部分金蝶版本上不存在
+    （响应 "...<Service> no found."）。此时：
+      - 有对应业务对象（user → SEC_User）→ 改走 ExecuteBillQuery，结果格式一致；
+      - 无对应业务对象 → 抛出明确可操作错误，不把底层堆栈抛给调用方。
+    """
+    payload = _system_query_payload(form_id, field_keys, filter_string, start_row, limit)
+    result = None
+    try:
+        result = await _post(ep_key, payload)
+    except Exception:
+        result = None
+    if _is_service_not_found(result):
+        fb = _SYSTEM_SERVICE_FALLBACK_FORM.get(ep_key)
+        if fb:
+            return await _post("query", {
+                "FormId": fb,
+                "FieldKeys": field_keys,
+                "FilterString": filter_string,
+                "StartRow": start_row,
+                "Limit": limit,
+            })
+        raise RuntimeError(
+            f"当前金蝶服务器不支持专用服务端点 {ep_key}（实测响应“…no found.”），"
+            f"且本账套没有可替代的业务对象表单。建议改用 kingdee_query_bills / "
+            f"kingdee_list_forms 先定位可查询的表单 ID。"
+        )
+    if result is None or (isinstance(result, dict) and result.get("kd_error")):
+        raise RuntimeError(f"查询 {ep_key} 失败：{result if result else '专用服务不可用'}")
+    return result
 
 
 @mcp.tool(

@@ -31,7 +31,7 @@ agent_created: true
 - `password`（默认）：账号密码 `ValidateUser`，以真实用户身份执行，携带该用户业务/数据权限，**推荐**。
 - `app_secret`：第三方应用授权 `LoginByAppSecret`，以应用身份登录，无需真实用户账号；报表等依赖数据权限的查询会受应用授权范围限制。
 
-完整工具列表、支持的 form_id、环境变量与常见问题见 `references/kingdee_reference.md`；工具总数以 `src/kingdee_mcp/server.py` 中 `@mcp.tool` 为准（**97 个**）。
+完整工具列表、支持的 form_id、环境变量与常见问题见 `references/kingdee_reference.md`；工具总数以 `src/kingdee_mcp/server.py` 中 `@mcp.tool` 为准（**103 个**）。
 
 ## 触发场景
 
@@ -100,15 +100,25 @@ python3 integrations/workbuddy/scripts/configure_kingdee_mcp.py \
 
 ## Resources
 - `integrations/workbuddy/scripts/configure_kingdee_mcp.py` — 合并写入 MCP 配置（支持双登录）。
-- `references/kingdee_reference.md` — 完整工具列表（97）、支持的单据类型（form_id）、环境变量、双登录说明与 FAQ。
-- `src/kingdee_mcp/server.py` — 上游 MCP Server 源码（97 个 `@mcp.tool`，双登录实现见 `_login()`）。
+- `references/kingdee_reference.md` — 完整工具列表、支持的单据类型（form_id）、环境变量、双登录说明与 FAQ。
+- `src/kingdee_mcp/server.py` — 上游 MCP Server 源码（双登录实现见 `_login()`）。
 
-## 数据中心（账套）管理与中文交互
-本连接器把登录页的「账套下拉框」（`GetDataCenterList`）抽成 MCP 工具，让用户/AI 用自然语言切换账套，无需记忆十六进制 Id：
+## 连接 / 登录信息管理（切换账套、账号、密码、语言等）
+登录相关的信息全部支持运行时切换，切换后下一次 API 调用自动用新配置重新登录（即重连）。
 
-- **`kingdee_list_data_centers`**：列出所有账套（中文名 / 账套号 / 登录 Id / 数据库类型 / 认证方式），无需登录即可调用。当用户问「有哪些账套」「我要切到XX账套」时先调用它。
-- **`kingdee_switch_data_center(identifier)`**：切到指定账套并重置会话。`identifier` 支持**中文名 / 账套号 / Id**（如 `预生产`、`TEST20260521`、`6466ccc799e8fb`）。切换后下一次 API 调用自动用新账套重新登录；切换仅对当前 MCP 进程生效。
+- **`kingdee_switch_login(...)`**（推荐）：一次可切换**任意组合**——
+  `server_url`(连接地址，裸主机自动补 `/k3cloud/`)、`data_center`(账套，中文名/账套号/Id)、
+  `username`、`password`、`auth_mode`(password/app_secret)、`app_id`、`app_secret`、`lcid`(登录语言)。
+  参数均可选，只改传了的项；切换后默认立即试登录一次并报告结果（`verify`），
+  加 `persist=True` 可写回 `~/.workbuddy/mcp.json` 使重启后仍生效。
+- **`kingdee_switch_data_center(identifier)`**：只切换账套的便捷包装（等价 `switch_login(data_center=...)`）。
+- **`kingdee_show_login_info()`**：查看当前连接/登录配置（密码与 AppSecret 一律脱敏）+ 会话状态。
+- **`kingdee_test_login()`**：用当前配置立即登录一次，验证并重连。
+- **`kingdee_list_data_centers()`**：列出所有账套（含各自支持的登录语言）。
+- **`kingdee_list_login_languages()`**：按需查询当前账套支持的登录语言（默认中文 2052，一般不用调）。
 
-配合 `KINGDEE_ACCT_ID` 可填中文名/账套号（启动时自动解析为登录 Id），AI 即可直接说「查预生产里的采购订单」「切到 TEST20260521 账套」，无需硬编码 Id。
+**登录语言（LCID）**：默认 `2052` 中文(简体)，不需额外请求——账套数据里的 `LocaleValueName` 的 Key 即
+各语言 LCID，内置映射（412 个 LCID≈144 种语言含地区变体）已在代码中，切换时会把"该账套支持哪些语言"
+列出来并询问用户是否需要切换（如 `2052=中文(简体)`、`1033=英语(美国)`、`3076=中文(繁體·香港)`）。
 
-> 注意：切换是运行时行为，进程重启后回到 mcp.json 里 `KINGDEE_ACCT_ID` 配置的值。若要永久生效，把 `KINGDEE_ACCT_ID` 改成目标账套的 Id（或中文名）。
+> 切换仅对当前 MCP 进程生效；重启后回到 `mcp.json` 的 `env` 配置值。要永久生效请 `persist=True` 或改配置。

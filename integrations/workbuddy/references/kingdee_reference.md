@@ -1,7 +1,7 @@
 # 金蝶云星空 MCP 参考（kingdee-mcp >= 0.3.0，双登录版）
 
 > 第三方开源项目（github.com/WaHaiLong/KingdeeMCP，PyPI: `kingdee-mcp`），**非金蝶官方出品**。
-> 本参考随 `kd-k3cloud-mcp` 合并工程维护。**工具总数以 `src/kingdee_mcp/server.py` 中 `@mcp.tool` 装饰器为准 = 97 个**（下文清单由脚本从源码自动提取，避免人工过时）。
+> 本参考随 `kd-k3cloud-mcp` 合并工程维护。**工具总数以 `src/kingdee_mcp/server.py` 中 `@mcp.tool` 装饰器为准 = 103 个**（下文清单由脚本从源码自动提取，避免人工过时）。
 
 ## 仓库与安装
 - GitHub（合并工程）: https://github.com/sclyxnet/kd-k3cloud-mcp
@@ -29,6 +29,41 @@
 配套能力：**`KINGDEE_ACCT_ID` 支持直接填中文账套名或账套号**（如 `预生产`），`server.py` 在登录前通过 `GetDataCenterList` 自动解析成登录用的 `Id`；若已是 Id 则原样使用。这样 AI 交互时可以直接说「切到预生产账套」「查预生产里的采购订单」，无需记忆十六进制 Id。
 
 > 解析规则：只有 `KINGDEE_ACCT_ID` 本身就是某账套的 `Id` 才原样透传；其余中文名 / 账套号一律解析为目标账套的 `Id`（金蝶 WebAPI 登录 `acctID` 参数 = 数据中心 `Id`）。返回体为 `base64(gzip(json))`，已做对应解码。
+
+## 登录信息全量运行时切换（0.3.2，真机实测）
+
+`kingdee_switch_login` 一个工具即可切换**任意组合**的登录信息，切换后立即重置会话 → 下一次 API 调用自动用新配置重登（即"重连"）。
+
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| `server_url` | 金蝶服务器地址，可传裸地址（自动补 `/k3cloud/`） | `http://your-kingdee-host` |
+| `data_center` | 账套，**中文名 / 账套号 / Id** 均可 | `预生产`、`TEST20230518`、`6466ccc799e8fb` |
+| `username` | 金蝶账号（password 模式） | `your_username` |
+| `password` | 金蝶密码（password 模式） | — |
+| `auth_mode` | 登录方式：`password`（默认）\| `app_secret` | `password` |
+| `app_id` / `app_secret` | 应用授权凭据（app_secret 模式） | — |
+| `lcid` | 登录语言，**默认 2052 中文(简体)** | `2052` |
+| `persist` | `True` 时写回 `~/.workbuddy/mcp.json`，重启后仍生效 | `false` |
+| `verify` | `True`（默认）时立即试登录一次并报告结果 | `true` |
+
+配套工具：
+
+- **`kingdee_show_login_info`**：查看当前连接/登录配置，密码与 AppSecret **一律脱敏**。
+- **`kingdee_test_login`**：用当前配置立即登录一次，验证并重连。
+- **`kingdee_list_login_languages`**：按需查询当前账套支持的登录语言（默认中文 2052，一般不用调）。
+- **`kingdee_list_data_centers`**：列出账套，结果中 `supported_languages` 直接给出该账套支持的语言。
+
+> 切换默认是**运行时**行为，进程重启后回到 `mcp.json` 的配置。要永久生效：`persist=True`，或直接改 `mcp.json` 的 `env`。
+
+### 语言（LCID）映射
+
+内置 412 条 LCID 映射，常用：`2052=中文(简体)`（默认）、`1033=英语(美国)`、`3076=中文(繁體·香港)`、`1028=中文(繁體·台灣)`。
+账套支持哪些语言**直接从 `GetDataCenterList` 返回的 `LocaleValueName` 推导**（其 `Key` 即 LCID），无需额外请求。
+
+### 网络韧性（保证会话不中断）
+
+`_NET_RETRY`（默认 3 次，可用 `KINGDEE_NET_RETRY` 调整）+ 线性退避：网络超时 / 5xx / 会话失效时自动重登并重发。
+会话失效采用**精确判定**（明确失效措辞 + 401/419 状态码），不会因正常响应里出现 `SessionId` 字样就每次白白重登。
 
 ## 环境变量（必填，取决于登录方式）
 | 变量 | 说明 | 示例 |
@@ -67,7 +102,7 @@
 2. 为对应账号/应用分配所需模块的操作权限。
 3. `KINGDEE_SERVER_URL` 必须包含 `/k3cloud/` 后缀。
 
-## 工具列表（共 97 个，由 server.py 自动提取）
+## 工具列表（共 103 个，由 server.py 自动提取）
 按业务域分组（代表性工具，完整清单见 `src/kingdee_mcp/server.py`）：
 
 - **通用单据/查询 (16)**：`kingdee_save_bill` · `kingdee_validate_bill` · `kingdee_submit_bills` · `kingdee_audit_bills` · `kingdee_unaudit_bills` · `kingdee_delete_bills` · `kingdee_cancel_bills` · `kingdee_void_bills` · `kingdee_close_bill` · `kingdee_unclose_bill` · `kingdee_forbid_bills` · `kingdee_enable_bills` · `kingdee_push_bill` · `kingdee_create_lx_billing` · `kingdee_query_bills` · `kingdee_view_bill`
