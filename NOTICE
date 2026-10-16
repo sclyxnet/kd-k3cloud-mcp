@@ -1,0 +1,25 @@
+kingdee-mcp-unified
+====================
+
+本项目是将以下两个第三方开源项目合并而成的统一工程（非金蝶官方出品）：
+
+1. 上游 MCP Server：WaHaiLong/KingdeeMCP
+   - 仓库: https://github.com/WaHaiLong/KingdeeMCP
+   - PyPI: kingdee-mcp
+   - 许可证: MIT
+   - 本工程包含其 97 个 @mcp.tool 工具实现（src/kingdee_mcp/server.py）。
+
+2. WorkBuddy 连接器壳：huaangdou-afk/kingdee-mcp-connector
+   - 仓库: https://github.com/huaangdou-afk/kingdee-mcp-connector
+   - 许可证: MIT
+   - 本工程将其 SKILL.md / 配置脚本 / 参考文档归入 integrations/workbuddy/。
+
+合并工程新增内容（双登录）：
+   - 在 server.py 的 _login() 中增加 KINGDEE_AUTH_MODE 切换，支持
+     账号密码(ValidateUser) 与 第三方应用授权(LoginByAppSecret) 两种登录方式。
+   - 连接器配置脚本 configure_kingdee_mcp.py 支持 --auth-mode 参数。
+
+版权与许可证：
+   - 原始代码版权归各自原作者，按 MIT 许可证授权。
+   - 合并工程以 MIT 许可证发布，详见 LICENSE。
+   - 本工程与金蝶软件公司无任何隶属或授权关系。

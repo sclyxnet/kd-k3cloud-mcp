@@ -1,0 +1,616 @@
+- generic [ref=e1]:
+  - generic [ref=e6]:
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: "| API中心"
+        - button "企业版 " [ref=e14] [cursor=pointer]:
+          - text: 企业版
+          - generic [ref=e15]: 
+      - menubar [ref=e17]:
+        - menuitem "首页" [ref=e18] [cursor=pointer]
+        - menuitem "开发指南" [ref=e19] [cursor=pointer]
+        - menuitem "API文档" [ref=e20] [cursor=pointer]
+        - menuitem "SDK中心" [ref=e21] [cursor=pointer]
+      - generic [ref=e25]:
+        - button [ref=e26] [cursor=pointer]:
+          - img [ref=e28]
+        - text: 
+    - generic [ref=e30]:
+      - list [ref=e32]:
+        - listitem [ref=e33]:
+          - generic [ref=e38] [cursor=pointer]: 接口描述
+        - listitem [ref=e39]:
+          - generic [ref=e44] [cursor=pointer]: 请求参数
+        - listitem [ref=e45]:
+          - generic [ref=e50] [cursor=pointer]: 响应参数
+        - listitem [ref=e51]:
+          - generic [ref=e56] [cursor=pointer]: 请求示例
+        - listitem [ref=e57]:
+          - generic [ref=e62] [cursor=pointer]: 响应示例
+        - listitem [ref=e63]:
+          - generic [ref=e68] [cursor=pointer]: 代码示例
+        - listitem [ref=e69]:
+          - generic [ref=e73] [cursor=pointer]: API工具
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - generic [ref=e77]:
+            - textbox "请输入关键字" [active] [ref=e78]: 成本
+            - generic [ref=e79]:
+              - generic [ref=e80]: 
+              - generic [ref=e527] [cursor=pointer]: 
+          - generic [ref=e83]:
+            - textbox "业务领域" [ref=e84] [cursor=pointer]: 生产制造
+            - generic [ref=e86] [cursor=pointer]: 
+          - tree [ref=e90]:
+            - treeitem " 工程数据管理" [ref=e91]:
+              - generic [ref=e92] [cursor=pointer]:
+                - generic [ref=e93]: 
+                - generic "工程数据管理" [ref=e94]
+            - treeitem " 计划管理" [ref=e95]:
+              - generic [ref=e96] [cursor=pointer]:
+                - generic [ref=e97]: 
+                - generic "计划管理" [ref=e98]
+            - treeitem " 生产管理" [ref=e99]:
+              - generic [ref=e100] [cursor=pointer]:
+                - generic [ref=e101]: 
+                - generic "生产管理" [ref=e102]
+            - treeitem " 委外管理" [expanded] [ref=e103]:
+              - generic [ref=e104] [cursor=pointer]:
+                - generic [ref=e105]: 
+                - generic "委外管理" [ref=e106]
+              - group [ref=e107]:
+                - treeitem " 委外超耗单" [ref=e108]:
+                  - generic [ref=e109] [cursor=pointer]:
+                    - generic [ref=e110]: 
+                    - generic "委外超耗单" [ref=e111]
+                - treeitem " 委外补料单" [ref=e112]:
+                  - generic [ref=e113] [cursor=pointer]:
+                    - generic [ref=e114]: 
+                    - generic "委外补料单" [ref=e115]
+                - treeitem " 委外领料单" [ref=e116]:
+                  - generic [ref=e117] [cursor=pointer]:
+                    - generic [ref=e118]: 
+                    - generic "委外领料单" [ref=e119]
+                - treeitem " 委外用料清单" [ref=e120]:
+                  - generic [ref=e121] [cursor=pointer]:
+                    - generic [ref=e122]: 
+                    - generic "委外用料清单" [ref=e123]
+                - treeitem " 委外用料清单变更单" [ref=e124]:
+                  - generic [ref=e125] [cursor=pointer]:
+                    - generic [ref=e126]: 
+                    - generic "委外用料清单变更单" [ref=e127]
+                - treeitem " 委外齐套分析" [ref=e128]:
+                  - generic [ref=e129] [cursor=pointer]:
+                    - generic [ref=e130]: 
+                    - generic "委外齐套分析" [ref=e131]
+                - treeitem " 委外订单变更单" [ref=e132]:
+                  - generic [ref=e133] [cursor=pointer]:
+                    - generic [ref=e134]: 
+                    - generic "委外订单变更单" [ref=e135]
+                - treeitem " 委外退料单" [ref=e136]:
+                  - generic [ref=e137] [cursor=pointer]:
+                    - generic [ref=e138]: 
+                    - generic "委外退料单" [ref=e139]
+                - treeitem " 委外订单" [expanded] [ref=e140]:
+                  - generic [ref=e141] [cursor=pointer]:
+                    - generic [ref=e142]: 
+                    - generic "委外订单" [ref=e143]
+                  - group [ref=e144]:
+                    - treeitem " 删除" [ref=e145]:
+                      - generic [ref=e146] [cursor=pointer]:
+                        - generic [ref=e147]: 
+                        - generic "删除" [ref=e148]
+                    - treeitem " 暂存" [ref=e149]:
+                      - generic [ref=e150] [cursor=pointer]:
+                        - generic [ref=e151]: 
+                        - generic "暂存" [ref=e152]
+                    - treeitem " 保存" [ref=e153]:
+                      - generic [ref=e154] [cursor=pointer]:
+                        - generic [ref=e155]: 
+                        - generic "保存" [ref=e156]
+                    - treeitem " 查看" [expanded] [ref=e157]:
+                      - generic [ref=e158] [cursor=pointer]:
+                        - generic [ref=e159]: 
+                        - generic "查看" [ref=e160]
+                      - group
+                    - treeitem " 提交" [ref=e161]:
+                      - generic [ref=e162] [cursor=pointer]:
+                        - generic [ref=e163]: 
+                        - generic "提交" [ref=e164]
+                    - treeitem " 审核" [ref=e165]:
+                      - generic [ref=e166] [cursor=pointer]:
+                        - generic [ref=e167]: 
+                        - generic "审核" [ref=e168]
+                    - treeitem " 反审核" [ref=e169]:
+                      - generic [ref=e170] [cursor=pointer]:
+                        - generic [ref=e171]: 
+                        - generic "反审核" [ref=e172]
+                    - treeitem " 撤销" [ref=e173]:
+                      - generic [ref=e174] [cursor=pointer]:
+                        - generic [ref=e175]: 
+                        - generic "撤销" [ref=e176]
+                    - treeitem " 下推" [ref=e177]:
+                      - generic [ref=e178] [cursor=pointer]:
+                        - generic [ref=e179]: 
+                        - generic "下推" [ref=e180]
+                    - treeitem " 作废" [ref=e181]:
+                      - generic [ref=e182] [cursor=pointer]:
+                        - generic [ref=e183]: 
+                        - generic "作废" [ref=e184]
+                    - treeitem " 反作废" [ref=e185]:
+                      - generic [ref=e186] [cursor=pointer]:
+                        - generic [ref=e187]: 
+                        - generic "反作废" [ref=e188]
+                    - treeitem " 执行至计划确认" [ref=e189]:
+                      - generic [ref=e190] [cursor=pointer]:
+                        - generic [ref=e191]: 
+                        - generic "执行至计划确认" [ref=e192]
+                    - treeitem " 执行至下达" [ref=e193]:
+                      - generic [ref=e194] [cursor=pointer]:
+                        - generic [ref=e195]: 
+                        - generic "执行至下达" [ref=e196]
+                    - treeitem " 执行至完工" [ref=e197]:
+                      - generic [ref=e198] [cursor=pointer]:
+                        - generic [ref=e199]: 
+                        - generic "执行至完工" [ref=e200]
+                    - treeitem " 执行至结案" [ref=e201]:
+                      - generic [ref=e202] [cursor=pointer]:
+                        - generic [ref=e203]: 
+                        - generic "执行至结案" [ref=e204]
+                    - treeitem " 反执行至计划" [ref=e205]:
+                      - generic [ref=e206] [cursor=pointer]:
+                        - generic [ref=e207]: 
+                        - generic "反执行至计划" [ref=e208]
+                    - treeitem " 反执行至计划确认" [ref=e209]:
+                      - generic [ref=e210] [cursor=pointer]:
+                        - generic [ref=e211]: 
+                        - generic "反执行至计划确认" [ref=e212]
+                    - treeitem " 反执行至下达" [ref=e213]:
+                      - generic [ref=e214] [cursor=pointer]:
+                        - generic [ref=e215]: 
+                        - generic "反执行至下达" [ref=e216]
+                    - treeitem " 反执行至完工" [ref=e217]:
+                      - generic [ref=e218] [cursor=pointer]:
+                        - generic [ref=e219]: 
+                        - generic "反执行至完工" [ref=e220]
+                    - treeitem " 强制结案" [ref=e221]:
+                      - generic [ref=e222] [cursor=pointer]:
+                        - generic [ref=e223]: 
+                        - generic "强制结案" [ref=e224]
+                    - treeitem " 批量保存" [ref=e225]:
+                      - generic [ref=e226] [cursor=pointer]:
+                        - generic [ref=e227]: 
+                        - generic "批量保存" [ref=e228]
+                    - treeitem " 单据查询" [ref=e229]:
+                      - generic [ref=e230] [cursor=pointer]:
+                        - generic [ref=e231]: 
+                        - generic "单据查询" [ref=e232]
+                - treeitem " 委外仓库" [ref=e233]:
+                  - generic [ref=e234] [cursor=pointer]:
+                    - generic [ref=e235]: 
+                    - generic "委外仓库" [ref=e236]
+            - treeitem " 日排产" [ref=e237]:
+              - generic [ref=e238] [cursor=pointer]:
+                - generic [ref=e239]: 
+                - generic "日排产" [ref=e240]
+            - treeitem " 车间管理" [ref=e241]:
+              - generic [ref=e242] [cursor=pointer]:
+                - generic [ref=e243]: 
+                - generic "车间管理" [ref=e244]
+        - generic [ref=e248]:
+          - navigation "Breadcrumb" [ref=e249]:
+            - generic [ref=e250]:
+              - link "生产制造" [ref=e251]
+              - generic [ref=e252]: 
+            - generic [ref=e253]:
+              - link "委外管理" [ref=e254]
+              - generic [ref=e255]: 
+            - generic [ref=e256]:
+              - link "委外订单" [ref=e257]
+              - generic [ref=e258]: 
+            - generic [ref=e259]:
+              - link "查看" [ref=e260]
+              - text: 
+          - generic [ref=e261]:
+            - generic [ref=e262]:
+              - heading "委外订单(SUB_SUBREQORDER)" [level=1] [ref=e263]
+              - paragraph [ref=e264]: 最新更新时间：2023-03-09
+            - generic [ref=e265]: 查看
+          - generic [ref=e270]:
+            - generic [ref=e272]: 接口描述
+            - generic [ref=e273]: 本接口用于实现委外订单 (SUB_SUBREQORDER) 的查看(View)功能
+          - generic [ref=e274]:
+            - paragraph [ref=e275]:
+              - generic [ref=e277]: 请求参数
+            - generic [ref=e278]:
+              - table [ref=e280]:
+                - rowgroup [ref=e287]:
+                  - row "名称 类型 是否必须 示例值 描述" [ref=e288]:
+                    - columnheader "名称" [ref=e289]:
+                      - generic [ref=e290]: 名称
+                    - columnheader "类型" [ref=e291]:
+                      - generic [ref=e292]: 类型
+                    - columnheader "是否必须" [ref=e293]:
+                      - generic [ref=e294]: 是否必须
+                    - columnheader "示例值" [ref=e295]:
+                      - generic [ref=e296]: 示例值
+                    - columnheader "描述" [ref=e297]:
+                      - generic [ref=e298]: 描述
+              - table [ref=e393]:
+                - rowgroup [ref=e400]:
+                  - row "formid String 必录 SUB_SUBREQORDER 业务对象表单Id，字符串类型（必录）" [ref=e401]:
+                    - cell "formid" [ref=e402]:
+                      - generic [ref=e403]: formid
+                    - cell "String" [ref=e404]:
+                      - generic [ref=e405]: String
+                    - cell "必录" [ref=e406]:
+                      - generic [ref=e407]: 必录
+                    - cell "SUB_SUBREQORDER" [ref=e408]:
+                      - generic [ref=e409]: SUB_SUBREQORDER
+                    - cell "业务对象表单Id，字符串类型（必录）" [ref=e410]:
+                      - generic [ref=e411]: 业务对象表单Id，字符串类型（必录）
+                  - row " data Object 必录 JSON格式数据（详情参考JSON格式数据）（必录）" [ref=e412]:
+                    - cell " data" [ref=e413]:
+                      - generic [ref=e414]:
+                        - generic [ref=e416] [cursor=pointer]: 
+                        - text: data
+                    - cell "Object" [ref=e417]:
+                      - generic [ref=e418]: Object
+                    - cell "必录" [ref=e419]:
+                      - generic [ref=e420]: 必录
+                    - cell [ref=e421]
+                    - cell "JSON格式数据（详情参考JSON格式数据）（必录）" [ref=e422]:
+                      - generic [ref=e423]: JSON格式数据（详情参考JSON格式数据）（必录）
+                  - row "CreateOrgId Integer 非必录 0 创建者组织内码（非必录）" [ref=e424]:
+                    - cell "CreateOrgId" [ref=e425]:
+                      - generic [ref=e426]: CreateOrgId
+                    - cell "Integer" [ref=e428]:
+                      - generic [ref=e429]: Integer
+                    - cell "非必录" [ref=e430]:
+                      - generic [ref=e431]: 非必录
+                    - cell "0" [ref=e432]:
+                      - generic [ref=e433]: "0"
+                    - cell "创建者组织内码（非必录）" [ref=e434]:
+                      - generic [ref=e435]: 创建者组织内码（非必录）
+                  - row "Number String 非必录 单据编码，字符串类型（使用编码时必录）" [ref=e436]:
+                    - cell "Number" [ref=e437]:
+                      - generic [ref=e438]: Number
+                    - cell "String" [ref=e440]:
+                      - generic [ref=e441]: String
+                    - cell "非必录" [ref=e442]:
+                      - generic [ref=e443]: 非必录
+                    - cell [ref=e444]
+                    - cell "单据编码，字符串类型（使用编码时必录）" [ref=e445]:
+                      - generic [ref=e446]: 单据编码，字符串类型（使用编码时必录）
+                  - row "Id String 非必录 表单内码（使用内码时必录）" [ref=e447]:
+                    - cell "Id" [ref=e448]:
+                      - generic [ref=e449]: Id
+                    - cell "String" [ref=e451]:
+                      - generic [ref=e452]: String
+                    - cell "非必录" [ref=e453]:
+                      - generic [ref=e454]: 非必录
+                    - cell [ref=e455]
+                    - cell "表单内码（使用内码时必录）" [ref=e456]:
+                      - generic [ref=e457]: 表单内码（使用内码时必录）
+                  - row "IsSortBySeq bool 非必录 false 单据体是否按序号排序，默认false" [ref=e458]:
+                    - cell "IsSortBySeq" [ref=e459]:
+                      - generic [ref=e460]: IsSortBySeq
+                    - cell "bool" [ref=e462]:
+                      - generic [ref=e463]: bool
+                    - cell "非必录" [ref=e464]:
+                      - generic [ref=e465]: 非必录
+                    - cell "false" [ref=e466]:
+                      - generic [ref=e467]: "false"
+                    - cell "单据体是否按序号排序，默认false" [ref=e468]:
+                      - generic [ref=e469]: 单据体是否按序号排序，默认false
+          - generic [ref=e306]:
+            - paragraph [ref=e307]:
+              - generic [ref=e309]: 响应参数
+            - generic [ref=e310]:
+              - table [ref=e312]:
+                - rowgroup [ref=e318]:
+                  - row "名称 类型 示例值 描述" [ref=e319]:
+                    - columnheader "名称" [ref=e320]:
+                      - generic [ref=e321]: 名称
+                    - columnheader "类型" [ref=e322]:
+                      - generic [ref=e323]: 类型
+                    - columnheader "示例值" [ref=e324]:
+                      - generic [ref=e325]: 示例值
+                    - columnheader "描述" [ref=e326]:
+                      - generic [ref=e327]: 描述
+              - table [ref=e470]:
+                - rowgroup [ref=e476]:
+                  - 'row " Result Object {} JSON响应参数描述" [ref=e477]':
+                    - cell " Result" [ref=e478]:
+                      - generic [ref=e479]:
+                        - generic [ref=e481] [cursor=pointer]: 
+                        - text: Result
+                    - cell "Object" [ref=e482]:
+                      - generic [ref=e483]: Object
+                    - 'cell "{}" [ref=e484]':
+                      - generic [ref=e485]: "{}"
+                    - cell "JSON响应参数描述" [ref=e486]:
+                      - generic [ref=e487]: JSON响应参数描述
+                  - 'row " ResponseStatus Object {} 返回结果信息" [ref=e488]':
+                    - cell " ResponseStatus" [ref=e489]:
+                      - generic [ref=e490]:
+                        - generic [ref=e493] [cursor=pointer]: 
+                        - text: ResponseStatus
+                    - cell "Object" [ref=e494]:
+                      - generic [ref=e495]: Object
+                    - 'cell "{}" [ref=e496]':
+                      - generic [ref=e497]: "{}"
+                    - cell "返回结果信息" [ref=e498]:
+                      - generic [ref=e499]: 返回结果信息
+                  - 'row "Result Object {} 单据数据包,单据完整数据内容" [ref=e500]':
+                    - cell "Result" [ref=e501]:
+                      - generic [ref=e502]: Result
+                    - cell "Object" [ref=e504]:
+                      - generic [ref=e505]: Object
+                    - 'cell "{}" [ref=e506]':
+                      - generic [ref=e507]: "{}"
+                    - cell "单据数据包,单据完整数据内容" [ref=e508]:
+                      - generic [ref=e509]: 单据数据包,单据完整数据内容
+          - generic [ref=e335]:
+            - paragraph [ref=e336]:
+              - generic [ref=e338]: 请求示例
+            - generic [ref=e339]:
+              - tablist [ref=e343]:
+                - tab "标准请求示例" [selected] [ref=e344]
+              - tabpanel "标准请求示例" [ref=e346]:
+                - generic [ref=e347]:
+                  - generic [ref=e349] [cursor=pointer]: copy
+                  - generic [ref=e352]:
+                    - text: "{"
+                    - generic [ref=e510]: CreateOrgId:0,
+                    - generic [ref=e511]:
+                      - text: "Id:"
+                      - generic [ref=e512]: "\"\""
+                      - text: ","
+                    - generic [ref=e513]:
+                      - text: "IsSortBySeq:"
+                      - generic [ref=e514]: "\"false\""
+                      - text: ","
+                    - generic [ref=e515]:
+                      - text: "Number:"
+                      - generic [ref=e516]: "\"\""
+                    - text: "}"
+          - generic [ref=e354]:
+            - paragraph [ref=e355]:
+              - generic [ref=e357]: 响应示例
+            - generic [ref=e359]:
+              - generic [ref=e361] [cursor=pointer]: copy
+              - generic [ref=e364]:
+                - text: "{"
+                - generic [ref=e517]:
+                  - text: "Result:"
+                  - generic [ref=e519]:
+                    - text: "{"
+                    - generic [ref=e520]:
+                      - text: "ResponseStatus:"
+                      - generic [ref=e522]:
+                        - text: "{"
+                        - generic [ref=e523]:
+                          - text: "IsSuccess:"
+                          - generic [ref=e524]: "\"false\""
+                        - text: "}"
+                      - text: ","
+                    - generic [ref=e525]:
+                      - text: "Result:"
+                      - generic [ref=e526]: "\"{}\""
+                    - text: "}"
+                - text: "}"
+          - generic [ref=e366]:
+            - paragraph [ref=e367]:
+              - generic [ref=e369]: 代码示例
+            - generic [ref=e370]:
+              - tablist [ref=e374]:
+                - tab "JAVA" [selected] [ref=e375]
+                - tab "C#" [ref=e376]
+                - tab "PHP" [ref=e377]
+                - tab "Python" [ref=e378]
+              - tabpanel "JAVA" [ref=e380]:
+                - code [ref=e383]: "//注意 1：此处不再使用参数形式传入用户名及密码等敏感信息，改为在登录配置文件中设置。 //注意 2：必须先配置第三方系统登录授权信息后，再进行业务操作，详情参考各语言版本SDK介绍中的登录配置文件说明。 //读取配置，初始化SDK K3CloudApi client = new K3CloudApi(); //请求参数，要求为json字符串 String jsonData = \"{\\\"CreateOrgId\\\":0,\\\"Number\\\":\\\"\\\",\\\"Id\\\":\\\"\\\",\\\"IsSortBySeq\\\":\\\"false\\\"}\"; try{ //业务对象标识 String formId = \"SUB_SUBREQORDER\"; //调用接口 String resultJson = client.view(formId,jsonData); //用于记录结果 Gson gson = new Gson(); //对返回结果进行解析和校验 RepoRet repoRet = gson.fromJson(resultJson, RepoRet.class); if (repoRet.getResult().getResponseStatus().isIsSuccess()) { System.out.printf(\"接口返回结果: %s%n\", gson.toJson(repoRet.getResult())); } else { fail(\"接口返回结果: \" + gson.toJson(repoRet.getResult().getResponseStatus())); } } catch (Exception e) { fail(e.getMessage()); }"
+          - generic [ref=e384]:
+            - paragraph [ref=e385]:
+              - generic [ref=e387]: API工具
+            - button "API在线测试" [ref=e389] [cursor=pointer]
+      - generic:              
+  - tooltip [ref=e528]:
+    - tree [ref=e532]:
+      - text:   
+      - treeitem "成本管理" [expanded] [ref=e533]:
+        - generic [ref=e534] [cursor=pointer]:
+          - text: 
+          - generic [ref=e535]: 成本管理
+        - group [ref=e639]:
+          - treeitem [expanded] [ref=e536]:
+            - text: 
+            - group [ref=e537]:
+              - text: 
+              - treeitem "成本调整单" [expanded] [ref=e538]:
+                - generic [ref=e539] [cursor=pointer]:
+                  - text: 
+                  - generic "成本调整单（存货核算）" [ref=e540]: 成本调整单
+                - group:           
+              - treeitem "零成本批量维护" [expanded] [ref=e541]:
+                - generic [ref=e542] [cursor=pointer]:
+                  - text: 
+                  - generic "零成本批量维护（存货核算）" [ref=e543]: 零成本批量维护
+                - group:       
+              - treeitem "合同履约成本分配结果" [expanded] [ref=e544]:
+                - generic [ref=e545] [cursor=pointer]:
+                  - text: 
+                  - generic "合同履约成本分配结果（存货核算）" [ref=e546]: 合同履约成本分配结果
+                - group:  
+              - treeitem "成本价趋势分析表" [expanded] [ref=e547]:
+                - generic [ref=e548] [cursor=pointer]:
+                  - text: 
+                  - generic "成本价趋势分析表（存货核算）" [ref=e549]: 成本价趋势分析表
+                - group: 
+              - treeitem "成本预警设置" [expanded] [ref=e550]:
+                - generic [ref=e551] [cursor=pointer]:
+                  - text: 
+                  - generic "成本预警设置（存货核算）" [ref=e552]: 成本预警设置
+                - group:           
+              - text:  
+              - treeitem "核算单据成本对比分析表" [expanded] [ref=e553]:
+                - generic [ref=e554] [cursor=pointer]:
+                  - text: 
+                  - generic "核算单据成本对比分析表（存货核算）" [ref=e555]: 核算单据成本对比分析表
+                - group: 
+              - text: 
+              - treeitem "即时成本对比分析表" [expanded] [ref=e556]:
+                - generic [ref=e557] [cursor=pointer]:
+                  - text: 
+                  - generic "即时成本对比分析表（存货核算）" [ref=e558]: 即时成本对比分析表
+                - group: 
+              - text:       
+              - treeitem "入库成本维护（多单据）" [expanded] [ref=e559]:
+                - generic [ref=e560] [cursor=pointer]:
+                  - text: 
+                  - generic "入库成本维护（多单据）（存货核算）" [ref=e561]: 入库成本维护（多单据）
+                - group: 
+              - text:  
+              - treeitem "物料成本库" [expanded] [ref=e562]:
+                - generic [ref=e563] [cursor=pointer]:
+                  - text: 
+                  - generic "物料成本库（存货核算）" [ref=e564]: 物料成本库
+                - group: 
+              - treeitem "物料目标成本单" [expanded] [ref=e565]:
+                - generic [ref=e566] [cursor=pointer]:
+                  - text: 
+                  - generic "物料目标成本单（存货核算）" [ref=e567]: 物料目标成本单
+                - group:         
+              - text:   
+              - treeitem "出库成本维护" [expanded] [ref=e568]:
+                - generic [ref=e569] [cursor=pointer]:
+                  - text: 
+                  - generic "出库成本维护（存货核算）" [ref=e570]: 出库成本维护
+                - group: 
+              - text:             
+          - treeitem [expanded] [ref=e571]:
+            - text: 
+            - group [ref=e572]:
+              - text: 
+              - treeitem "副产品定额成本维护" [expanded] [ref=e573]:
+                - generic [ref=e574] [cursor=pointer]:
+                  - text: 
+                  - generic "副产品定额成本维护（产品成本核算）" [ref=e575]: 副产品定额成本维护
+                - group:     
+              - text:   
+              - treeitem "成本计算单" [expanded] [ref=e576]:
+                - generic [ref=e577] [cursor=pointer]:
+                  - text: 
+                  - generic "成本计算单（产品成本核算）" [ref=e578]: 成本计算单
+                - group: 
+              - treeitem "成本计算单(横向展示)" [expanded] [ref=e579]:
+                - generic [ref=e580] [cursor=pointer]:
+                  - text: 
+                  - generic "成本计算单(横向展示)（产品成本核算）" [ref=e581]: 成本计算单(横向展示)
+                - group: 
+              - treeitem "成本中心" [expanded] [ref=e582]:
+                - generic [ref=e583] [cursor=pointer]:
+                  - text: 
+                  - generic "成本中心（产品成本核算）" [ref=e584]: 成本中心
+                - group:          
+              - text:   
+              - treeitem "期初在产品成本调整" [expanded] [ref=e585]:
+                - generic [ref=e586] [cursor=pointer]:
+                  - text: 
+                  - generic "期初在产品成本调整（产品成本核算）" [ref=e587]: 期初在产品成本调整
+                - group:       
+              - text:  
+              - treeitem "材料成本项目设置" [expanded] [ref=e588]:
+                - generic [ref=e589] [cursor=pointer]:
+                  - text: 
+                  - generic "材料成本项目设置（产品成本核算）" [ref=e590]: 材料成本项目设置
+                - group:     
+              - treeitem "材料耗用成本查询" [expanded] [ref=e591]:
+                - generic [ref=e592] [cursor=pointer]:
+                  - text: 
+                  - generic "材料耗用成本查询（产品成本核算）" [ref=e593]: 材料耗用成本查询
+                - group: 
+              - text:  
+              - treeitem "销售订单成本跟踪表" [expanded] [ref=e594]:
+                - generic [ref=e595] [cursor=pointer]:
+                  - text: 
+                  - generic "销售订单成本跟踪表（产品成本核算）" [ref=e596]: 销售订单成本跟踪表
+                - group: 
+              - text:   
+              - treeitem "产品期间成本对比分析" [expanded] [ref=e597]:
+                - generic [ref=e598] [cursor=pointer]:
+                  - text: 
+                  - generic "产品期间成本对比分析（产品成本核算）" [ref=e599]: 产品期间成本对比分析
+                - group: 
+              - treeitem "产品成本还原对比分析" [expanded] [ref=e600]:
+                - generic [ref=e601] [cursor=pointer]:
+                  - text: 
+                  - generic "产品成本还原对比分析（产品成本核算）" [ref=e602]: 产品成本还原对比分析
+                - group: 
+              - text:     
+              - treeitem "车间成本计算单" [expanded] [ref=e603]:
+                - generic [ref=e604] [cursor=pointer]:
+                  - text: 
+                  - generic "车间成本计算单（产品成本核算）" [ref=e605]: 车间成本计算单
+                - group: 
+              - text:  
+              - treeitem "完工入库成本查询" [expanded] [ref=e606]:
+                - generic [ref=e607] [cursor=pointer]:
+                  - text: 
+                  - generic "完工入库成本查询（产品成本核算）" [ref=e608]: 完工入库成本查询
+                - group: 
+              - text:    
+              - treeitem "成本项目匹配方案" [expanded] [ref=e609]:
+                - generic [ref=e610] [cursor=pointer]:
+                  - text: 
+                  - generic "成本项目匹配方案（产品成本核算）" [ref=e611]: 成本项目匹配方案
+                - group:  
+              - treeitem "成本项目" [expanded] [ref=e612]:
+                - generic [ref=e613] [cursor=pointer]:
+                  - text: 
+                  - generic "成本项目（产品成本核算）" [ref=e614]: 成本项目
+                - group:          
+          - treeitem [expanded] [ref=e615]:
+            - text: 
+            - group [ref=e616]:
+              - treeitem "成本BOM设置" [expanded] [ref=e617]:
+                - generic [ref=e618] [cursor=pointer]:
+                  - text: 
+                  - generic "成本BOM设置（标准成本分析）" [ref=e619]: 成本BOM设置
+                - group:     
+              - text:  
+              - treeitem "产品成本差异分析" [expanded] [ref=e620]:
+                - generic [ref=e621] [cursor=pointer]:
+                  - text: 
+                  - generic "产品成本差异分析（标准成本分析）" [ref=e622]: 产品成本差异分析
+                - group: 
+              - treeitem "产品标准成本查询" [expanded] [ref=e623]:
+                - generic [ref=e624] [cursor=pointer]:
+                  - text: 
+                  - generic "产品标准成本查询（标准成本分析）" [ref=e625]: 产品标准成本查询
+                - group: 
+              - text: 
+              - treeitem "标准成本版本" [expanded] [ref=e626]:
+                - generic [ref=e627] [cursor=pointer]:
+                  - text: 
+                  - generic "标准成本版本（标准成本分析）" [ref=e628]: 标准成本版本
+                - group:          
+              - text:  
+      - treeitem "资产管理" [expanded] [ref=e629]:
+        - generic [ref=e630] [cursor=pointer]:
+          - text: 
+          - generic [ref=e631]: 资产管理
+        - group [ref=e640]:
+          - text: 
+          - treeitem [expanded] [ref=e632]:
+            - text: 
+            - group [ref=e633]:
+              - text:   
+              - treeitem "摊余成本表" [expanded] [ref=e634]:
+                - generic [ref=e635] [cursor=pointer]:
+                  - text: 
+                  - generic "摊余成本表（租赁资产）" [ref=e636]: 摊余成本表
+                - group: 
+          - text: 
+      - text:           

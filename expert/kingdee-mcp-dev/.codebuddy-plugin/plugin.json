@@ -1,0 +1,96 @@
+{
+  "name": "kingdee-mcp-dev",
+  "version": "1.0.0",
+  "description": "Kingdee Cloud Star OpenAPI (ApiDoc) full-coverage MCP Server development team — WebAPI integration, MCP tool implementation, QA regression and PyPI release.",
+  "author": {
+    "name": "王传龙",
+    "email": "wangchuanlong@xinzhidie.com"
+  },
+  "agents": [
+    "./agents/kingdee-mcp-dev-team-lead.md",
+    "./agents/kingdee-webapi-engineer.md",
+    "./agents/kingdee-mcp-tool-dev.md",
+    "./agents/kingdee-qa-engineer.md",
+    "./agents/kingdee-doc-release.md"
+  ],
+  "skills": [
+    "./skills/kingdee-mcp-dev"
+  ],
+  "expertType": "team",
+  "agentName": "kingdee-mcp-dev-team-lead",
+  "teamInfo": {
+    "leadAgent": "kingdee-mcp-dev-team-lead",
+    "memberAgents": [
+      "kingdee-webapi-engineer",
+      "kingdee-mcp-tool-dev",
+      "kingdee-qa-engineer",
+      "kingdee-doc-release"
+    ]
+  },
+  "displayName": {
+    "en": "Kingdee MCP Dev Squad",
+    "zh": "金蝶 MCP 开发团"
+  },
+  "profession": {
+    "en": "Kingdee MCP Dev Squad",
+    "zh": "金蝶 MCP 开发团"
+  },
+  "displayDescription": {
+    "en": "Builds and maintains the Kingdee Cloud Star MCP Server: integrates all OpenAPI interfaces from ApiDoc, implements MCP tools, runs QA regression, and publishes to PyPI.",
+    "zh": "专注金蝶云星空 MCP 开发，将 ApiDoc 全量接口纳入 MCP，含接入、工具实现、测试与发布。"
+  },
+  "avatar": "avatars/team.png",
+  "categoryId": "02-Engineering",
+  "defaultInitPrompt": {
+    "zh": "把金蝶 ApiDoc【供应链→采购管理】的接口集成进 kingdee-mcp，先探字段再写工具。",
+    "en": "Help me integrate the Kingdee OpenAPI (ApiDoc) interfaces under Supply Chain > Procurement into kingdee-mcp — discover fields first, then implement the tool."
+  },
+  "plugin": "kingdee-mcp-dev",
+  "tags": [
+    { "en": "Kingdee Cloud", "zh": "金蝶云星空" },
+    { "en": "MCP Dev", "zh": "MCP 开发" },
+    { "en": "OpenAPI Coverage", "zh": "接口全量集成" }
+  ],
+  "quickPrompts": [
+    { "en": "Integrate the ApiDoc interfaces under Supply Chain > Procurement into kingdee-mcp (discover fields first).", "zh": "把金蝶 ApiDoc【供应链→采购管理】的接口集成进 kingdee-mcp，先探字段再写工具。" },
+    { "en": "Run the evals regression to confirm the 89 existing tools are not broken.", "zh": "跑一遍 evals 回归，确认现有 89 个工具没有被破坏。" },
+    { "en": "Prepare the 0.3.0 release: update CHANGELOG, build and upload to PyPI.", "zh": "准备 0.3.0 发布：更新 CHANGELOG、构建并上传 PyPI。" }
+  ],
+  "members": [
+    {
+      "id": "kingdee-mcp-dev-team-lead",
+      "displayName": { "en": "Gong Lianda", "zh": "龚联达" },
+      "profession": { "en": "Integration Delivery Director", "zh": "集成交付总监" },
+      "avatar": "avatars/kingdee-mcp-dev-team-lead.png",
+      "role": "lead"
+    },
+    {
+      "id": "kingdee-webapi-engineer",
+      "displayName": { "en": "Fan Tanyuan", "zh": "范探源" },
+      "profession": { "en": "Kingdee WebAPI Integration Engineer", "zh": "金蝶 WebAPI 集成工程师" },
+      "avatar": "avatars/kingdee-webapi-engineer.png",
+      "role": "member"
+    },
+    {
+      "id": "kingdee-mcp-tool-dev",
+      "displayName": { "en": "Kou Douma", "zh": "寇豆码" },
+      "profession": { "en": "MCP Tool Developer", "zh": "MCP 工具开发工程师" },
+      "avatar": "avatars/kingdee-mcp-tool-dev.png",
+      "role": "member"
+    },
+    {
+      "id": "kingdee-qa-engineer",
+      "displayName": { "en": "Yan Guoguan", "zh": "严过关" },
+      "profession": { "en": "QA & Test Engineer", "zh": "测试与质量工程师" },
+      "avatar": "avatars/kingdee-qa-engineer.png",
+      "role": "member"
+    },
+    {
+      "id": "kingdee-doc-release",
+      "displayName": { "en": "Wen Shucheng", "zh": "温书成" },
+      "profession": { "en": "Docs & Release Engineer", "zh": "文档与发布工程师" },
+      "avatar": "avatars/kingdee-doc-release.png",
+      "role": "member"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kingdee-mcp"
+version = "0.3.0"
+description = "MCP Server for Kingdee Cloud K/3 - Works with any MCP-compatible AI client (dual auth: password / app_secret)"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "WaHaiLong" }
+]
+keywords = ["mcp", "kingdee", "erp", "ai", "k3cloud", "claude", "cursor", "windsurf", "cline"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Accounting",
+]
+dependencies = [
+    "mcp[cli]>=1.2.0,<2.0.0",  # 2.0.0 删除了 mcp.server.fastmcp(FastMCP)，见 #12
+    "httpx>=0.27.0",
+    "pydantic>=2.0.0",
+    "pyodbc>=5.0.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/WaHaiLong/KingdeeMCP"
+Repository = "https://github.com/WaHaiLong/KingdeeMCP"
+Documentation = "https://github.com/WaHaiLong/KingdeeMCP#readme"
+
+[project.scripts]
+kingdee-mcp = "kingdee_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kingdee_mcp"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "e2e: 真实金蝶环境的端到端测试（需 KINGDEE_* 环境变量）",
+]

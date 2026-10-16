@@ -1,0 +1,572 @@
+- generic [ref=e6]:
+  - generic [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]: "| API中心"
+      - button "企业版 " [ref=e14] [cursor=pointer]:
+        - text: 企业版
+        - generic [ref=e15]: 
+    - menubar [ref=e17]:
+      - menuitem "首页" [ref=e18] [cursor=pointer]
+      - menuitem "开发指南" [ref=e19] [cursor=pointer]
+      - menuitem "API文档" [ref=e20] [cursor=pointer]
+      - menuitem "SDK中心" [ref=e21] [cursor=pointer]
+    - generic [ref=e25]:
+      - button [ref=e26] [cursor=pointer]:
+        - img [ref=e28]
+      - text: 
+  - generic [ref=e30]:
+    - list [ref=e32]:
+      - listitem [ref=e33]:
+        - generic [ref=e38] [cursor=pointer]: 接口描述
+      - listitem [ref=e39]:
+        - generic [ref=e44] [cursor=pointer]: 请求参数
+      - listitem [ref=e45]:
+        - generic [ref=e50] [cursor=pointer]: 响应参数
+      - listitem [ref=e51]:
+        - generic [ref=e56] [cursor=pointer]: 请求示例
+      - listitem [ref=e57]:
+        - generic [ref=e62] [cursor=pointer]: 响应示例
+      - listitem [ref=e63]:
+        - generic [ref=e68] [cursor=pointer]: 代码示例
+      - listitem [ref=e69]:
+        - generic [ref=e73] [cursor=pointer]: API工具
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - generic [ref=e77]:
+            - textbox "请输入关键字" [ref=e78]
+            - generic [ref=e80]: 
+          - generic:                
+        - generic [ref=e83]:
+          - textbox "业务领域" [ref=e84] [cursor=pointer]: 成本管理
+          - generic [ref=e86] [cursor=pointer]: 
+        - tree [ref=e90]:
+          - treeitem " 存货核算" [ref=e91]:
+            - generic [ref=e92] [cursor=pointer]:
+              - generic [ref=e93]: 
+              - generic "存货核算" [ref=e94]
+          - treeitem " 产品成本核算" [expanded] [ref=e95]:
+            - generic [ref=e96] [cursor=pointer]:
+              - generic [ref=e97]: 
+              - generic "产品成本核算" [ref=e98]
+            - group [ref=e99]:
+              - treeitem " 自定义费用分配标准值维护" [ref=e100]:
+                - generic [ref=e101] [cursor=pointer]:
+                  - generic [ref=e102]: 
+                  - generic "自定义费用分配标准值维护" [ref=e103]
+              - treeitem " 副产品定额成本维护" [ref=e104]:
+                - generic [ref=e105] [cursor=pointer]:
+                  - generic [ref=e106]: 
+                  - generic "副产品定额成本维护" [ref=e107]
+              - treeitem " 完工入库数量查询" [ref=e108]:
+                - generic [ref=e109] [cursor=pointer]:
+                  - generic [ref=e110]: 
+                  - generic "完工入库数量查询" [ref=e111]
+              - treeitem " 共耗材料分配范围设置" [ref=e112]:
+                - generic [ref=e113] [cursor=pointer]:
+                  - generic [ref=e114]: 
+                  - generic "共耗材料分配范围设置" [ref=e115]
+              - treeitem " 费用分配标准" [ref=e116]:
+                - generic [ref=e117] [cursor=pointer]:
+                  - generic [ref=e118]: 
+                  - generic "费用分配标准" [ref=e119]
+              - treeitem " 成本计算单" [expanded] [ref=e120]:
+                - generic [ref=e121] [cursor=pointer]:
+                  - generic [ref=e122]: 
+                  - generic "成本计算单" [ref=e123]
+                - group [ref=e124]:
+                  - treeitem " 查询报表数据" [expanded] [ref=e125]:
+                    - generic [ref=e126] [cursor=pointer]:
+                      - generic [ref=e127]: 
+                      - generic "查询报表数据" [ref=e128]
+                    - group
+              - treeitem " 成本计算单(横向展示)" [ref=e129]:
+                - generic [ref=e130] [cursor=pointer]:
+                  - generic [ref=e131]: 
+                  - generic "成本计算单(横向展示)" [ref=e132]
+              - treeitem " 成本中心" [ref=e133]:
+                - generic [ref=e134] [cursor=pointer]:
+                  - generic [ref=e135]: 
+                  - generic "成本中心" [ref=e136]
+              - treeitem " 约当系数维护" [ref=e137]:
+                - generic [ref=e138] [cursor=pointer]:
+                  - generic [ref=e139]: 
+                  - generic "约当系数维护" [ref=e140]
+              - treeitem " 费用归集" [ref=e141]:
+                - generic [ref=e142] [cursor=pointer]:
+                  - generic [ref=e143]: 
+                  - generic "费用归集" [ref=e144]
+              - treeitem " 费用引入方案" [ref=e145]:
+                - generic [ref=e146] [cursor=pointer]:
+                  - generic [ref=e147]: 
+                  - generic "费用引入方案" [ref=e148]
+              - treeitem " 期初在产品成本调整" [ref=e149]:
+                - generic [ref=e150] [cursor=pointer]:
+                  - generic [ref=e151]: 
+                  - generic "期初在产品成本调整" [ref=e152]
+              - treeitem " 作业数量维护" [ref=e153]:
+                - generic [ref=e154] [cursor=pointer]:
+                  - generic [ref=e155]: 
+                  - generic "作业数量维护" [ref=e156]
+              - treeitem " 材料费用分配明细表" [ref=e157]:
+                - generic [ref=e158] [cursor=pointer]:
+                  - generic [ref=e159]: 
+                  - generic "材料费用分配明细表" [ref=e160]
+              - treeitem " 材料成本项目设置" [ref=e161]:
+                - generic [ref=e162] [cursor=pointer]:
+                  - generic [ref=e163]: 
+                  - generic "材料成本项目设置" [ref=e164]
+              - treeitem " 材料耗用成本查询" [ref=e165]:
+                - generic [ref=e166] [cursor=pointer]:
+                  - generic [ref=e167]: 
+                  - generic "材料耗用成本查询" [ref=e168]
+              - treeitem " 作业数量维护方案" [ref=e169]:
+                - generic [ref=e170] [cursor=pointer]:
+                  - generic [ref=e171]: 
+                  - generic "作业数量维护方案" [ref=e172]
+              - treeitem " 费用分配明细表" [ref=e173]:
+                - generic [ref=e174] [cursor=pointer]:
+                  - generic [ref=e175]: 
+                  - generic "费用分配明细表" [ref=e176]
+              - treeitem " 销售订单成本跟踪表" [ref=e177]:
+                - generic [ref=e178] [cursor=pointer]:
+                  - generic [ref=e179]: 
+                  - generic "销售订单成本跟踪表" [ref=e180]
+              - treeitem " 委外加工费查询" [ref=e181]:
+                - generic [ref=e182] [cursor=pointer]:
+                  - generic [ref=e183]: 
+                  - generic "委外加工费查询" [ref=e184]
+              - treeitem " 产品组" [ref=e185]:
+                - generic [ref=e186] [cursor=pointer]:
+                  - generic [ref=e187]: 
+                  - generic "产品组" [ref=e188]
+              - treeitem " 在产品盘点数量录入" [ref=e189]:
+                - generic [ref=e190] [cursor=pointer]:
+                  - generic [ref=e191]: 
+                  - generic "在产品盘点数量录入" [ref=e192]
+              - treeitem " 产品期间成本对比分析" [ref=e193]:
+                - generic [ref=e194] [cursor=pointer]:
+                  - generic [ref=e195]: 
+                  - generic "产品期间成本对比分析" [ref=e196]
+              - treeitem " 产品成本还原对比分析" [ref=e197]:
+                - generic [ref=e198] [cursor=pointer]:
+                  - generic [ref=e199]: 
+                  - generic "产品成本还原对比分析" [ref=e200]
+              - treeitem " 产品维度利润分析表" [ref=e201]:
+                - generic [ref=e202] [cursor=pointer]:
+                  - generic [ref=e203]: 
+                  - generic "产品维度利润分析表" [ref=e204]
+              - treeitem " 投入产出表" [ref=e205]:
+                - generic [ref=e206] [cursor=pointer]:
+                  - generic [ref=e207]: 
+                  - generic "投入产出表" [ref=e208]
+              - treeitem " 投入产量归集" [ref=e209]:
+                - generic [ref=e210] [cursor=pointer]:
+                  - generic [ref=e211]: 
+                  - generic "投入产量归集" [ref=e212]
+              - treeitem " 定额因子" [ref=e213]:
+                - generic [ref=e214] [cursor=pointer]:
+                  - generic [ref=e215]: 
+                  - generic "定额因子" [ref=e216]
+              - treeitem " 销售订单利润分析表" [ref=e217]:
+                - generic [ref=e218] [cursor=pointer]:
+                  - generic [ref=e219]: 
+                  - generic "销售订单利润分析表" [ref=e220]
+              - treeitem " 车间成本计算单" [ref=e221]:
+                - generic [ref=e222] [cursor=pointer]:
+                  - generic [ref=e223]: 
+                  - generic "车间成本计算单" [ref=e224]
+              - treeitem " 车间投入产出表" [ref=e225]:
+                - generic [ref=e226] [cursor=pointer]:
+                  - generic [ref=e227]: 
+                  - generic "车间投入产出表" [ref=e228]
+              - treeitem " 费用分配标准设置" [ref=e229]:
+                - generic [ref=e230] [cursor=pointer]:
+                  - generic [ref=e231]: 
+                  - generic "费用分配标准设置" [ref=e232]
+              - treeitem " 完工入库成本查询" [ref=e233]:
+                - generic [ref=e234] [cursor=pointer]:
+                  - generic [ref=e235]: 
+                  - generic "完工入库成本查询" [ref=e236]
+              - treeitem " 月末在制计算规则设置" [ref=e237]:
+                - generic [ref=e238] [cursor=pointer]:
+                  - generic [ref=e239]: 
+                  - generic "月末在制计算规则设置" [ref=e240]
+              - treeitem " 在产品分配标准设置" [ref=e241]:
+                - generic [ref=e242] [cursor=pointer]:
+                  - generic [ref=e243]: 
+                  - generic "在产品分配标准设置" [ref=e244]
+              - treeitem " 作业活动" [ref=e245]:
+                - generic [ref=e246] [cursor=pointer]:
+                  - generic [ref=e247]: 
+                  - generic "作业活动" [ref=e248]
+              - treeitem " 实际工时归集" [ref=e249]:
+                - generic [ref=e250] [cursor=pointer]:
+                  - generic [ref=e251]: 
+                  - generic "实际工时归集" [ref=e252]
+              - treeitem " 成本项目匹配方案" [ref=e253]:
+                - generic [ref=e254] [cursor=pointer]:
+                  - generic [ref=e255]: 
+                  - generic "成本项目匹配方案" [ref=e256]
+              - treeitem " 成本项目" [ref=e257]:
+                - generic [ref=e258] [cursor=pointer]:
+                  - generic [ref=e259]: 
+                  - generic "成本项目" [ref=e260]
+          - treeitem " 标准成本分析" [ref=e261]:
+            - generic [ref=e262] [cursor=pointer]:
+              - generic [ref=e263]: 
+              - generic "标准成本分析" [ref=e264]
+      - generic [ref=e268]:
+        - navigation "Breadcrumb" [ref=e269]:
+          - generic [ref=e270]:
+            - link "成本管理" [ref=e271]
+            - generic [ref=e272]: 
+          - generic [ref=e273]:
+            - link "产品成本核算" [ref=e274]
+            - generic [ref=e275]: 
+          - generic [ref=e276]:
+            - link "成本计算单" [ref=e277]
+            - generic [ref=e278]: 
+          - generic [ref=e279]:
+            - link "查询报表数据" [ref=e280]
+            - text: 
+        - generic [ref=e281]:
+          - generic [ref=e282]:
+            - heading "成本计算单(CB_CostCalBill)" [level=1] [ref=e283]
+            - paragraph [ref=e284]: 最新更新时间：2023-03-09
+          - generic [ref=e285]: 查询报表数据
+        - generic [ref=e290]:
+          - generic [ref=e292]: 接口描述
+          - generic [ref=e293]: 本接口用于实现成本计算单 (CB_CostCalBill) 的查询报表数据(GetSysReportData)功能
+        - generic [ref=e294]:
+          - paragraph [ref=e295]:
+            - generic [ref=e297]: 请求参数
+          - generic [ref=e298]:
+            - table [ref=e300]:
+              - rowgroup [ref=e307]:
+                - row "名称 类型 是否必须 示例值 描述" [ref=e308]:
+                  - columnheader "名称" [ref=e309]:
+                    - generic [ref=e310]: 名称
+                  - columnheader "类型" [ref=e311]:
+                    - generic [ref=e312]: 类型
+                  - columnheader "是否必须" [ref=e313]:
+                    - generic [ref=e314]: 是否必须
+                  - columnheader "示例值" [ref=e315]:
+                    - generic [ref=e316]: 示例值
+                  - columnheader "描述" [ref=e317]:
+                    - generic [ref=e318]: 描述
+            - generic [ref=e319]:
+              - table:
+                - rowgroup
+              - generic [ref=e321]: 暂无数据
+            - img [ref=e324]
+        - generic [ref=e326]:
+          - paragraph [ref=e327]:
+            - generic [ref=e329]: 响应参数
+          - generic [ref=e330]:
+            - table [ref=e332]:
+              - rowgroup [ref=e338]:
+                - row "名称 类型 示例值 描述" [ref=e339]:
+                  - columnheader "名称" [ref=e340]:
+                    - generic [ref=e341]: 名称
+                  - columnheader "类型" [ref=e342]:
+                    - generic [ref=e343]: 类型
+                  - columnheader "示例值" [ref=e344]:
+                    - generic [ref=e345]: 示例值
+                  - columnheader "描述" [ref=e346]:
+                    - generic [ref=e347]: 描述
+            - table [ref=e413]:
+              - rowgroup [ref=e419]:
+                - 'row " Result Object {} JSON响应参数描述" [ref=e420]':
+                  - cell " Result" [ref=e421]:
+                    - generic [ref=e422]:
+                      - generic [ref=e424] [cursor=pointer]: 
+                      - text: Result
+                  - cell "Object" [ref=e425]:
+                    - generic [ref=e426]: Object
+                  - 'cell "{}" [ref=e427]':
+                    - generic [ref=e428]: "{}"
+                  - cell "JSON响应参数描述" [ref=e429]:
+                    - generic [ref=e430]: JSON响应参数描述
+                - 'row " ResponseStatus Object {} 返回结果信息" [ref=e431]':
+                  - cell " ResponseStatus" [ref=e432]:
+                    - generic [ref=e433]:
+                      - generic [ref=e436] [cursor=pointer]: 
+                      - text: ResponseStatus
+                  - cell "Object" [ref=e437]:
+                    - generic [ref=e438]: Object
+                  - 'cell "{}" [ref=e439]':
+                    - generic [ref=e440]: "{}"
+                  - cell "返回结果信息" [ref=e441]:
+                    - generic [ref=e442]: 返回结果信息
+                - text:   
+            - img [ref=e353]
+        - generic [ref=e355]:
+          - paragraph [ref=e356]:
+            - generic [ref=e358]: 请求示例
+          - generic [ref=e359]:
+            - tablist [ref=e363]:
+              - tab "标准请求示例" [selected] [ref=e364]
+            - tabpanel "标准请求示例" [ref=e366]:
+              - generic [ref=e367]:
+                - generic [ref=e369] [cursor=pointer]: copy
+                - generic [ref=e372]:
+                  - text: "{"
+                  - generic [ref=e443]:
+                    - text: "FieldKeys:"
+                    - generic [ref=e444]: "\"\""
+                    - text: ","
+                  - generic [ref=e445]:
+                    - text: "FilterString:"
+                    - generic [ref=e447]: "[]"
+                    - text: ","
+                  - generic [ref=e448]:
+                    - text: "IsVerifyBaseDataField:"
+                    - generic [ref=e449]: "\"true\""
+                    - text: ","
+                  - generic [ref=e450]: Limit:2000,
+                  - generic [ref=e451]:
+                    - text: "Model:"
+                    - generic [ref=e453]:
+                      - text: "{"
+                      - generic [ref=e454]:
+                        - text: "FACCTGORGID:"
+                        - generic [ref=e456]:
+                          - text: "{"
+                          - generic [ref=e457]:
+                            - text: "FNumber:"
+                            - generic [ref=e458]: "\"\""
+                          - text: "}"
+                        - text: ","
+                      - generic [ref=e459]:
+                        - text: "FACCTGSYSTEMID:"
+                        - generic [ref=e461]:
+                          - text: "{"
+                          - generic [ref=e462]:
+                            - text: "FNumber:"
+                            - generic [ref=e463]: "\"\""
+                          - text: "}"
+                        - text: ","
+                      - generic [ref=e464]:
+                        - text: "FACCTPOLICYID:"
+                        - generic [ref=e466]:
+                          - text: "{"
+                          - generic [ref=e467]:
+                            - text: "FNumber:"
+                            - generic [ref=e468]: "\"\""
+                          - text: "}"
+                        - text: ","
+                      - generic [ref=e469]:
+                        - text: "FBILLTYPE:"
+                        - generic [ref=e470]: "\"\""
+                        - text: ","
+                      - generic [ref=e471]:
+                        - text: "FCurrencyID:"
+                        - generic [ref=e473]:
+                          - text: "{"
+                          - generic [ref=e474]:
+                            - text: "FNumber:"
+                            - generic [ref=e475]: "\"\""
+                          - text: "}"
+                        - text: ","
+                      - generic [ref=e476]:
+                        - text: "FENDBILLNO:"
+                        - generic [ref=e477]: "\"\""
+                        - text: ","
+                      - generic [ref=e478]:
+                        - text: "FENDCOSTCID:"
+                        - generic [ref=e480]:
+                          - text: "{"
+                          - generic [ref=e481]:
+                            - text: "FNumber:"
+                            - generic [ref=e482]: "\"\""
+                          - text: "}"
+                        - text: ","
+                      - generic [ref=e483]:
+                        - text: "FENDCOSTITEMID:"
+                        - generic [ref=e485]:
+                          - text: "{"
+                          - generic [ref=e486]:
+                            - text: "FNUMBER:"
+                            - generic [ref=e487]: "\"\""
+                          - text: "}"
+                        - text: ","
+                      - generic [ref=e488]:
+                        - text: "FENDDATE:"
+                        - generic [ref=e489]: "\"1900-01-01\""
+                        - text: ","
+                      - generic [ref=e490]:
+                        - text: "FENDEXPENSEID:"
+                        - generic [ref=e492]:
+                          - text: "{"
+                          - generic [ref=e493]:
+                            - text: "FNumber:"
+                            - generic [ref=e494]: "\"\""
+                          - text: "}"
+                        - text: ","
+                      - generic [ref=e495]:
+                        - text: "FENDMATERIALID:"
+                        - generic [ref=e497]:
+                          - text: "{"
+                          - generic [ref=e498]:
+                            - text: "FNumber:"
+                            - generic [ref=e499]: "\"\""
+                          - text: "}"
+                        - text: ","
+                      - generic [ref=e500]:
+                        - text: "FENDPROORDERID:"
+                        - generic [ref=e501]: "\"\""
+                        - text: ","
+                      - generic [ref=e502]:
+                        - text: "FEndOrderBillNo:"
+                        - generic [ref=e503]: "\"\""
+                        - text: ","
+                      - generic [ref=e504]:
+                        - text: "FEndPeriod:"
+                        - generic [ref=e505]: "\"\""
+                        - text: ","
+                      - generic [ref=e506]:
+                        - text: "FEndYear:"
+                        - generic [ref=e507]: "\"\""
+                        - text: ","
+                      - generic [ref=e508]:
+                        - text: "FFPROORDERTYPE:"
+                        - generic [ref=e509]: "\"\""
+                        - text: ","
+                      - generic [ref=e510]:
+                        - text: "FISSHOWDETAIL:"
+                        - generic [ref=e511]: "\"false\""
+                        - text: ","
+                      - generic [ref=e512]:
+                        - text: "FISSHOWMATERIA:"
+                        - generic [ref=e513]: "\"false\""
+                        - text: ","
+                      - generic [ref=e514]:
+                        - text: "FMULBILLTYPE:"
+                        - generic [ref=e515]: "\"\""
+                        - text: ","
+                      - generic [ref=e516]:
+                        - text: "FNOINCOMPNOSHOW:"
+                        - generic [ref=e517]: "\"false\""
+                        - text: ","
+                      - generic [ref=e518]:
+                        - text: "FOUTSRCMULCOMBOX:"
+                        - generic [ref=e519]: "\"\""
+                        - text: ","
+                      - generic [ref=e520]:
+                        - text: "FPeriod:"
+                        - generic [ref=e521]: "\"\""
+                        - text: ","
+                      - generic [ref=e522]:
+                        - text: "FSHOWWAY:"
+                        - generic [ref=e523]: "\"\""
+                        - text: ","
+                      - generic [ref=e524]:
+                        - text: "FSTARTBILLNO:"
+                        - generic [ref=e525]: "\"\""
+                        - text: ","
+                      - generic [ref=e526]:
+                        - text: "FSTARTCOSTCID:"
+                        - generic [ref=e528]:
+                          - text: "{"
+                          - generic [ref=e529]:
+                            - text: "FNumber:"
+                            - generic [ref=e530]: "\"\""
+                          - text: "}"
+                        - text: ","
+                      - generic [ref=e531]:
+                        - text: "FSTARTCOSTITEMID:"
+                        - generic [ref=e533]:
+                          - text: "{"
+                          - generic [ref=e534]:
+                            - text: "FNUMBER:"
+                            - generic [ref=e535]: "\"\""
+                          - text: "}"
+                        - text: ","
+                      - generic [ref=e536]:
+                        - text: "FSTARTDATE:"
+                        - generic [ref=e537]: "\"1900-01-01\""
+                        - text: ","
+                      - generic [ref=e538]:
+                        - text: "FSTARTEXPENSEID:"
+                        - generic [ref=e540]:
+                          - text: "{"
+                          - generic [ref=e541]:
+                            - text: "FNumber:"
+                            - generic [ref=e542]: "\"\""
+                          - text: "}"
+                        - text: ","
+                      - generic [ref=e543]:
+                        - text: "FSTARTMATERIALID:"
+                        - generic [ref=e545]:
+                          - text: "{"
+                          - generic [ref=e546]:
+                            - text: "FNumber:"
+                            - generic [ref=e547]: "\"\""
+                          - text: "}"
+                        - text: ","
+                      - generic [ref=e548]:
+                        - text: "FSTARTPROORDERID:"
+                        - generic [ref=e549]: "\"\""
+                        - text: ","
+                      - generic [ref=e550]:
+                        - text: "FShowIndirectExpenseDetial:"
+                        - generic [ref=e551]: "\"false\""
+                        - text: ","
+                      - generic [ref=e552]:
+                        - text: "FStartOrderBillNo:"
+                        - generic [ref=e553]: "\"\""
+                        - text: ","
+                      - generic [ref=e554]:
+                        - text: "FSumGist:"
+                        - generic [ref=e555]: "\"\""
+                        - text: ","
+                      - generic [ref=e556]:
+                        - text: "FSumPeriod:"
+                        - generic [ref=e557]: "\"false\""
+                        - text: ","
+                      - generic [ref=e558]:
+                        - text: "FYear:"
+                        - generic [ref=e559]: "\"\""
+                      - text: "}"
+                    - text: ","
+                  - generic [ref=e560]:
+                    - text: "SchemeId:"
+                    - generic [ref=e561]: "\"\""
+                    - text: ","
+                  - generic [ref=e562]: StartRow:0
+                  - text: "}"
+        - generic [ref=e374]:
+          - paragraph [ref=e375]:
+            - generic [ref=e377]: 响应示例
+          - generic [ref=e379]:
+            - generic [ref=e381] [cursor=pointer]: copy
+            - generic [ref=e384]:
+              - text: "{"
+              - generic [ref=e565]:
+                - text: "Result:"
+                - generic [ref=e567]:
+                  - text: "{"
+                  - generic [ref=e568]: IsSuccess:true,
+                  - generic [ref=e569]: RowCount:0,
+                  - generic [ref=e570]:
+                    - text: "Rows:"
+                    - generic [ref=e572]: "[]"
+                  - text: "}"
+              - text: "}"
+        - generic [ref=e386]:
+          - paragraph [ref=e387]:
+            - generic [ref=e389]: 代码示例
+          - generic [ref=e390]:
+            - tablist [ref=e394]:
+              - tab "JAVA" [selected] [ref=e395]
+              - tab "C#" [ref=e396]
+              - tab "PHP" [ref=e397]
+              - tab "Python" [ref=e398]
+            - tabpanel "JAVA" [ref=e400]:
+              - code [ref=e403]: "//注意 1：此处不再使用参数形式传入用户名及密码等敏感信息，改为在登录配置文件中设置。 //注意 2：必须先配置第三方系统登录授权信息后，再进行业务操作，详情参考各语言版本SDK介绍中的登录配置文件说明。 //读取配置，初始化SDK K3CloudApi client = new K3CloudApi(); //请求参数，要求为json字符串 String jsonData = \"{\\\"FieldKeys\\\":\\\"\\\",\\\"SchemeId\\\":\\\"\\\",\\\"StartRow\\\":0,\\\"Limit\\\":2000,\\\"IsVerifyBaseDataField\\\":\\\"true\\\",\\\"FilterString\\\":[],\\\"Model\\\":{\\\"FACCTGSYSTEMID\\\":{\\\"FNumber\\\":\\\"\\\"},\\\"FACCTGORGID\\\":{\\\"FNumber\\\":\\\"\\\"},\\\"FACCTPOLICYID\\\":{\\\"FNumber\\\":\\\"\\\"},\\\"FYear\\\":\\\"\\\",\\\"FEndYear\\\":\\\"\\\",\\\"FPeriod\\\":\\\"\\\",\\\"FEndPeriod\\\":\\\"\\\",\\\"FSTARTCOSTCID\\\":{\\\"FNumber\\\":\\\"\\\"},\\\"FCurrencyID\\\":{\\\"FNumber\\\":\\\"\\\"},\\\"FENDCOSTCID\\\":{\\\"FNumber\\\":\\\"\\\"},\\\"FSTARTBILLNO\\\":\\\"\\\",\\\"FMULBILLTYPE\\\":\\\"\\\",\\\"FFPROORDERTYPE\\\":\\\"\\\",\\\"FOUTSRCMULCOMBOX\\\":\\\"\\\",\\\"FENDDATE\\\":\\\"1900-01-01\\\",\\\"FBILLTYPE\\\":\\\"\\\",\\\"FSTARTDATE\\\":\\\"1900-01-01\\\",\\\"FSTARTMATERIALID\\\":{\\\"FNumber\\\":\\\"\\\"},\\\"FENDBILLNO\\\":\\\"\\\",\\\"FENDMATERIALID\\\":{\\\"FNumber\\\":\\\"\\\"},\\\"FENDPROORDERID\\\":\\\"\\\",\\\"FSTARTCOSTITEMID\\\":{\\\"FNUMBER\\\":\\\"\\\"},\\\"FSTARTPROORDERID\\\":\\\"\\\",\\\"FSTARTEXPENSEID\\\":{\\\"FNumber\\\":\\\"\\\"},\\\"FENDCOSTITEMID\\\":{\\\"FNUMBER\\\":\\\"\\\"},\\\"FENDEXPENSEID\\\":{\\\"FNumber\\\":\\\"\\\"},\\\"FISSHOWDETAIL\\\":\\\"false\\\",\\\"FISSHOWMATERIA\\\":\\\"false\\\",\\\"FSHOWWAY\\\":\\\"\\\",\\\"FShowIndirectExpenseDetial\\\":\\\"false\\\",\\\"FSumGist\\\":\\\"\\\",\\\"FStartOrderBillNo\\\":\\\"\\\",\\\"FEndOrderBillNo\\\":\\\"\\\",\\\"FNOINCOMPNOSHOW\\\":\\\"false\\\",\\\"FSumPeriod\\\":\\\"false\\\"}}\"; try{ //业务对象标识 String formId = \"CB_CostCalBill\"; //调用接口 String resultJson = client.getSysReportData(formId,jsonData); //用于记录结果 Gson gson = new Gson(); //对返回结果进行解析和校验 RepoRet repoRet = gson.fromJson(resultJson, RepoRet.class); if (repoRet.getResult().getResponseStatus().isIsSuccess()) { System.out.printf(\"接口返回结果: %s%n\", gson.toJson(repoRet.getResult())); } else { fail(\"接口返回结果: \" + gson.toJson(repoRet.getResult().getResponseStatus())); } } catch (Exception e) { fail(e.getMessage()); }"
+        - generic [ref=e404]:
+          - paragraph [ref=e405]:
+            - generic [ref=e407]: API工具
+          - button "API在线测试" [ref=e409] [cursor=pointer]
+    - generic: 

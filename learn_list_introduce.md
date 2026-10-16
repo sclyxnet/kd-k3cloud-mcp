@@ -1,0 +1,383 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - link "" [ref=e566] [cursor=pointer]:
+      - /url: https://vip.kingdee.com/pushplatform/transfer?redirectUrl=ODM0MzkwNTIwNjc4ODExOTA0XzQxNDM2MjY1Mjc0NDQxMTY0OF80MDA2OTMyNzgxNTAwODQwOTZfMV8xMzYwNDM5NDA=
+      - generic [ref=e568]: 
+    - banner [ref=e6]:
+      - generic [ref=e7]:
+        - link "金蝶云社区" [ref=e8] [cursor=pointer]:
+          - /url: /school
+          - img "金蝶云社区-学习成长中心" [ref=e9]
+        - generic [ref=e10]:
+          - generic [ref=e13]: 搜索您感兴趣的内容
+          - navigation [ref=e14]:
+            - generic [ref=e16]
+        - link "访问社区" [ref=e26] [cursor=pointer]:
+          - /url: /
+        - button "我的学习" [ref=e30] [cursor=pointer]
+        - button "黄豆AI" [ref=e34] [cursor=pointer]:
+          - img "黄豆AI" [ref=e35]
+      - text:  
+  - main [ref=e36]:
+    - generic [ref=e40]:
+      - paragraph [ref=e41]
+      - list [ref=e42]:
+        - text: 产品线：
+        - listitem [ref=e43] [cursor=pointer]: 全部
+        - listitem [ref=e44] [cursor=pointer]: 金蝶云星空
+        - listitem [ref=e45] [cursor=pointer]: 金蝶AI星辰
+        - listitem [ref=e46] [cursor=pointer]: 金蝶KIS云
+        - listitem [ref=e47] [cursor=pointer]: 金蝶AI苍穹
+        - listitem [ref=e48] [cursor=pointer]: EAS Cloud
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - generic [ref=e51]:
+            - link "header" [ref=e52] [cursor=pointer]:
+              - /url: /people/huopu-248133?tab=learnList
+            - link "一直有项目做的霍普" [ref=e54] [cursor=pointer]:
+              - /url: /people/huopu-248133?tab=learnList
+            - paragraph [ref=e55]: 星光不问赶路人，时光不负有心人。
+            - paragraph [ref=e56]
+          - generic [ref=e59]:
+            - paragraph [ref=e60]: 一直有项目做的霍普的学习清单
+            - link "从小白到入门，全方位了解星空" [ref=e62] [cursor=pointer]:
+              - /url: /school/learnList/426699957374918912?source=poster_page
+            - paragraph [ref=e64]: 推荐语：本篇学习清单会把我学习星空的经历以导学的形式分享给大家，希望大家从中得到学习成长的经验，让初次接触星空系统的创见者们少走一些弯路
+            - generic [ref=e65]
+        - generic [ref=e70]:
+          - generic [ref=e71]:
+            - link "header" [ref=e72] [cursor=pointer]:
+              - /url: /people/name-195472307803149312?tab=learnList
+            - link "言鱼" [ref=e74] [cursor=pointer]:
+              - /url: /people/name-195472307803149312?tab=learnList
+            - paragraph [ref=e75]: 积跬步以行千里，和我一起交流业财，共同成长！
+            - paragraph [ref=e76]
+          - generic [ref=e79]:
+            - paragraph [ref=e80]: 言鱼的学习清单
+            - link "探索财务密码，一起解密账务处理，让业财浅显易懂" [ref=e82] [cursor=pointer]:
+              - /url: /school/learnList/426450499148030208?source=poster_page
+            - paragraph [ref=e84]: 推荐语：进入企业管理软件行业多年，我深知财务是全行业全领域的末端产出，基于此我分享了关于各种业务的账务处理，希望大家通过本次学习，能更好地进行账务处理，更加得心应手。
+            - generic [ref=e85]
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - link "header" [ref=e92] [cursor=pointer]:
+              - /url: /people/wutong-182074?tab=learnList
+            - link "梧桐有语" [ref=e94] [cursor=pointer]:
+              - /url: /people/wutong-182074?tab=learnList
+            - paragraph [ref=e95]: 天地有大美而不言，四季有明法而不议，学习探索，永无止境！
+            - paragraph [ref=e96]
+          - generic [ref=e99]:
+            - paragraph [ref=e100]: 梧桐有语的学习清单
+            - link "星空移动应用，帮助初学者从入门到精通" [ref=e102] [cursor=pointer]:
+              - /url: /school/learnList/426686467235137792?source=poster_page
+            - paragraph [ref=e104]: 推荐语：金蝶云·星空提供了基于多种平台的全面的移动应用套件，可以覆盖企业移动化办公。希望大家通过本次学习，能够熟练掌握星空移动应用的使用，完成从初学者到资深专家的跨越。
+            - generic [ref=e105]
+        - generic [ref=e110]:
+          - generic [ref=e111]:
+            - link "header" [ref=e112] [cursor=pointer]:
+              - /url: /people/yu-2147404822?tab=learnList
+            - link "WDTN" [ref=e114] [cursor=pointer]:
+              - /url: /people/yu-2147404822?tab=learnList
+            - paragraph [ref=e115]: 分享是一种神奇的东西，它使快乐增大，它使悲伤减小。
+            - paragraph [ref=e116]
+          - generic [ref=e119]:
+            - paragraph [ref=e120]: WDTN的学习清单
+            - link "30分钟教你玩转金蝶云星空发票云——开票" [ref=e122] [cursor=pointer]:
+              - /url: /school/learnList/426444348939585792?source=poster_page
+            - paragraph [ref=e124]: 推荐语：通过本篇学习清单，您可以完整学习金蝶云星空发票云开票功能及金税发票，助您系统掌握星空发票云开票应用。
+            - generic [ref=e125]
+        - generic [ref=e130]:
+          - generic [ref=e131]:
+            - link "header" [ref=e132] [cursor=pointer]:
+              - /url: /people/suifengpiaozou-79412?tab=learnList
+            - link "随风飘走" [ref=e135] [cursor=pointer]:
+              - /url: /people/suifengpiaozou-79412?tab=learnList
+            - paragraph [ref=e136]: PMO项目管理，企业管理知识的搬运工，永远的学习者。
+            - paragraph [ref=e137]
+          - generic [ref=e140]:
+            - paragraph [ref=e141]: 随风飘走的学习清单
+            - link "存货核算从小白到高手" [ref=e143] [cursor=pointer]:
+              - /url: /school/learnList/433384687105701632?source=poster_page
+            - paragraph [ref=e145]: 推荐语：存货核算是每一位实施顾问都很头痛的问题，通过学习本篇学习清单，可以让您更好地了解存货核算，全面掌握存货核算每一步的核心要点，轻松解决常见问题。
+            - generic [ref=e146]
+        - generic [ref=e151]:
+          - generic [ref=e152]:
+            - link "header" [ref=e153] [cursor=pointer]:
+              - /url: /people/yu-2147404822?tab=learnList
+            - link "WDTN" [ref=e155] [cursor=pointer]:
+              - /url: /people/yu-2147404822?tab=learnList
+            - paragraph [ref=e156]: 分享是一种神奇的东西，它使快乐增大，它使悲伤减小。
+            - paragraph [ref=e157]
+          - generic [ref=e160]:
+            - paragraph [ref=e161]: WDTN的学习清单
+            - link "30分钟教你玩转金蝶云星空发票云——收票" [ref=e163] [cursor=pointer]:
+              - /url: /school/learnList/426480317243627008?source=poster_page
+            - paragraph [ref=e165]: 推荐语：本篇学习清单涵盖金蝶云星空的收票全业务流程及对应相关知识，学完后有助您快速上手星空收票业务，轻松玩转星空收票！
+            - generic [ref=e166]
+        - generic [ref=e171]:
+          - generic [ref=e172]:
+            - link "header" [ref=e173] [cursor=pointer]:
+              - /url: /people/name-195472307803149312?tab=learnList
+            - link "言鱼" [ref=e175] [cursor=pointer]:
+              - /url: /people/name-195472307803149312?tab=learnList
+            - paragraph [ref=e176]: 积跬步以行千里，和我一起交流业财，共同成长！
+            - paragraph [ref=e177]
+          - generic [ref=e180]:
+            - paragraph [ref=e181]: 言鱼的学习清单
+            - link "成本实务——走近成本世界，一起探索成本实操与核算" [ref=e183] [cursor=pointer]:
+              - /url: /school/learnList/431526583187054080?source=poster_page
+            - paragraph [ref=e185]: 推荐语：成本与费用是企业经营中永恒不变的话题，这决定了你的企业利润，也是一门专业性很高的学问；如何进行存货核算？产品成本如何一步一步进行归集与分配？
+            - generic [ref=e186]
+        - generic [ref=e191]:
+          - generic [ref=e192]:
+            - link "header" [ref=e193] [cursor=pointer]:
+              - /url: /people/wutong-182074?tab=learnList
+            - link "梧桐有语" [ref=e195] [cursor=pointer]:
+              - /url: /people/wutong-182074?tab=learnList
+            - paragraph [ref=e196]: 天地有大美而不言，四季有明法而不议，学习探索，永无止境！
+            - paragraph [ref=e197]
+          - generic [ref=e200]:
+            - paragraph [ref=e201]: 梧桐有语的学习清单
+            - link "资产管理工作中的应用" [ref=e203] [cursor=pointer]:
+              - /url: /school/learnList/428854150114156800?source=poster_page
+            - paragraph [ref=e205]: 推荐语：通过学习本篇学习清单，可以帮助资产会计快速了解星空资产模块的使用及各功能作用，让资产管理工作更加高效简单，轻松解决常见问题！
+            - generic [ref=e206]
+        - generic [ref=e211]:
+          - generic [ref=e212]:
+            - link "header" [ref=e213] [cursor=pointer]:
+              - /url: /people/name-2147477598?tab=learnList
+            - link "渝A的" [ref=e215] [cursor=pointer]:
+              - /url: /people/name-2147477598?tab=learnList
+            - paragraph [ref=e216]: 朝着你的人生方向，即便是“乌龟”，周拱一卒，也会超过“原地拉磨的兔子”。
+            - paragraph [ref=e217]
+          - generic [ref=e220]:
+            - paragraph [ref=e221]: 渝A的的学习清单
+            - link "轻松掌握应收收款核销的功能，及拓展知识" [ref=e223] [cursor=pointer]:
+              - /url: /school/learnList/426704769130731008?source=poster_page
+            - paragraph [ref=e225]: 推荐语：完成本次学习后，您将能够轻松掌握应收收款核销的功能，应收收款核销包括关联关系核销、匹配核销、手工匹配核销、手工特殊核销、快速核销等操作。
+            - generic [ref=e226]
+        - generic [ref=e231]:
+          - generic [ref=e232]:
+            - link "header" [ref=e233] [cursor=pointer]:
+              - /url: /people/name-104378?tab=learnList
+            - link "OUT_MAN" [ref=e235] [cursor=pointer]:
+              - /url: /people/name-104378?tab=learnList
+            - paragraph [ref=e236]: 博学之，审问之，慎思之，明辩之，笃行之。
+            - paragraph [ref=e237]
+          - generic [ref=e240]:
+            - paragraph [ref=e241]: OUT_MAN的学习清单
+            - link "协同开发，轻松入门" [ref=e243] [cursor=pointer]:
+              - /url: /school/learnList/429322087539253504?source=poster_page
+            - paragraph [ref=e245]: 推荐语：通过此学习清单，可以帮助初学者快速掌握协同开发常用功能，有助您顺利做好协同开发的项目，清单分为账号类、数据中心类、应用项目类、项目构建类四个部分。
+            - generic [ref=e246]
+        - generic [ref=e251]:
+          - generic [ref=e252]:
+            - link "header" [ref=e253] [cursor=pointer]:
+              - /url: /people/ningningyun-39289?tab=learnList
+            - link "宁宁云" [ref=e255] [cursor=pointer]:
+              - /url: /people/ningningyun-39289?tab=learnList
+            - paragraph [ref=e256]: 每天努力一点点，每天收获一点点。
+            - paragraph [ref=e257]
+          - generic [ref=e260]:
+            - paragraph [ref=e261]: 宁宁云的学习清单
+            - link "学好智能会计平台，让业财一体化更简单" [ref=e263] [cursor=pointer]:
+              - /url: /school/learnList/429305235849365760?source=poster_page
+            - paragraph [ref=e265]: 推荐语：本次为大家分享一期关于金蝶云星空智能会计平台的知识，为什么会选择这个模块呢？因为智能会计平台是链接财务和业务各个模块的平台，也是财务检验业务单据，实现业财一体化的通道。
+            - generic [ref=e266]
+        - generic [ref=e271]:
+          - generic [ref=e272]:
+            - link "header" [ref=e273] [cursor=pointer]:
+              - /url: /people/name-145367?tab=learnList
+            - link "成成" [ref=e275] [cursor=pointer]:
+              - /url: /people/name-145367?tab=learnList
+            - paragraph [ref=e276]: 书山有路勤为径，学海无涯苦作舟；苦中作乐，在学习中不断提升自我。
+            - paragraph [ref=e277]
+          - generic [ref=e280]:
+            - paragraph [ref=e281]: 成成的学习清单
+            - link "星辰财务一点通" [ref=e283] [cursor=pointer]:
+              - /url: /school/learnList/427051091536942592?source=poster_page
+            - paragraph [ref=e285]: 推荐语：成成作为一个从业金蝶五年多的实施顾问，在实施与服务客户过程中，发现很多客户有很强的自学意向，希望通过学习本篇清单，按照向导式操作，明确知道自己现在需要了解的是什么，进行对症下药。
+            - generic [ref=e286]
+        - generic [ref=e291]:
+          - generic [ref=e292]:
+            - link "header" [ref=e293] [cursor=pointer]:
+              - /url: /people/name-400282?tab=learnList
+            - link "皎月" [ref=e295] [cursor=pointer]:
+              - /url: /people/name-400282?tab=learnList
+            - paragraph [ref=e296]: 不断提升自己的业务水平能力，充实自己，给需要的人提供帮助。
+            - paragraph [ref=e297]
+          - generic [ref=e300]:
+            - paragraph [ref=e301]: 皎月的学习清单
+            - link "星辰业务小白轻松入门" [ref=e303] [cursor=pointer]:
+              - /url: /school/learnList/429631095118499584?source=poster_page
+            - paragraph [ref=e305]: 推荐语：本篇学习清单以采购、销售、仓存、应收应付、以及存货核算的学习内容为主，希望能够帮助大家快速上手并熟练掌握进销存业务系统，在实际工作中学以致用。
+            - generic [ref=e306]
+        - generic [ref=e311]:
+          - generic [ref=e312]:
+            - link "header" [ref=e313] [cursor=pointer]:
+              - /url: /people/yeluowusheng-2147412357?tab=learnList
+            - link "叶落无声" [ref=e315] [cursor=pointer]:
+              - /url: /people/yeluowusheng-2147412357?tab=learnList
+            - paragraph [ref=e316]: 一切伟大的行动和思想，都有一个微不足道的开始。
+            - paragraph [ref=e317]
+          - generic [ref=e320]:
+            - paragraph [ref=e321]: 叶落无声的学习清单
+            - link "从0到1，让税务不再难，人人皆可开票" [ref=e323] [cursor=pointer]:
+              - /url: /school/learnList/431072542598405632?source=poster_page
+            - paragraph [ref=e325]: 推荐语：全电发票时代，金蝶云星辰紧随脚步，响应趋势，全电发票作为以数治税的突破口，以电子发票服务平台为依托，实现发票全领域、全环节、全要素数字化。
+            - generic [ref=e326]
+        - generic [ref=e331]:
+          - generic [ref=e332]:
+            - link "header" [ref=e333] [cursor=pointer]:
+              - /url: /people/name-182611?tab=learnList
+            - link "李晓学" [ref=e335] [cursor=pointer]:
+              - /url: /people/name-182611?tab=learnList
+            - paragraph [ref=e336]: 平凡的事情做出不平凡的自己，才是最大的价值体现。
+            - paragraph [ref=e337]
+          - generic [ref=e340]:
+            - paragraph [ref=e341]: 李晓学的学习清单
+            - link "一个学习清单，教会您KIS旗舰版存货核算流程" [ref=e343] [cursor=pointer]:
+              - /url: /school/learnList/431128690907156224?source=poster_page
+            - paragraph [ref=e345]: 推荐语：存货核算作为一个“老大难”的环节，涉及成本会计这类财务知识较多；通过本次学习，您可以掌握旗舰版存货核算流程，轻松解决常见问题。
+            - generic [ref=e346]
+        - generic [ref=e351]:
+          - generic [ref=e352]:
+            - link "header" [ref=e353] [cursor=pointer]:
+              - /url: /people/michellechen-1761120264?tab=learnList
+            - link "michellechen" [ref=e356] [cursor=pointer]:
+              - /url: /people/michellechen-1761120264?tab=learnList
+            - paragraph [ref=e357]: 学以致用，知行并进。
+            - paragraph [ref=e358]
+          - generic [ref=e361]:
+            - paragraph [ref=e362]: michellechen的学习清单
+            - link "从0到1，助你熟练掌握普通生产管理的运用" [ref=e364] [cursor=pointer]:
+              - /url: /school/learnList/356037942362016512?source=poster_page
+            - paragraph [ref=e366]: 推荐语：希望通过本次学习清单的学习，能够帮助大家相对快速地掌握金蝶云星空普通生产管理的相关知识，在实际工作中学以致用。
+            - generic [ref=e367]
+        - generic [ref=e372]:
+          - generic [ref=e373]:
+            - link "header" [ref=e374] [cursor=pointer]:
+              - /url: /people/xiaoxiangpian-25303?tab=learnList
+            - link "林荫大道cc" [ref=e377] [cursor=pointer]:
+              - /url: /people/xiaoxiangpian-25303?tab=learnList
+            - paragraph [ref=e378]: 人生短短数十载，相信时间花在哪里，哪里就有收获。
+            - paragraph [ref=e379]
+          - generic [ref=e382]:
+            - paragraph [ref=e383]: 林荫大道cc的学习清单
+            - link "从入门到精通，我的PLM学习之路" [ref=e385] [cursor=pointer]:
+              - /url: /school/learnList/356068078150980096?source=poster_page
+            - paragraph [ref=e387]: 推荐语：从0到1，如何学习从未接触过的模块？本期清单以基础设置、文档、物料、BOM为主线，学完后可以对PLM模块有整体了解，跑通正向流程。
+            - generic [ref=e388]
+        - generic [ref=e393]:
+          - generic [ref=e394]:
+            - link "header" [ref=e395] [cursor=pointer]:
+              - /url: /people/name-182611?tab=learnList
+            - link "李晓学" [ref=e397] [cursor=pointer]:
+              - /url: /people/name-182611?tab=learnList
+            - paragraph [ref=e398]: 平凡的事情做出不平凡的自己，才是最大的价值体现。
+            - paragraph [ref=e399]
+          - generic [ref=e402]:
+            - paragraph [ref=e403]: 李晓学的学习清单
+            - link "从总账小白到出具三大报表，总账报表的全集使用攻略" [ref=e405] [cursor=pointer]:
+              - /url: /school/learnList/356476274527210240?source=poster_page
+            - paragraph [ref=e407]: 推荐语：跟随本期学习清单，我们从期初建账开始，进行录入基础资料维护，科目期初录入，到日常总账录入及期末处理，再到出具三大报表。学完本期清单，您将可以熟练掌握总账报表功能。
+            - generic [ref=e408]
+        - generic [ref=e413]:
+          - generic [ref=e414]:
+            - link "header" [ref=e415] [cursor=pointer]:
+              - /url: /people/name-182611?tab=learnList
+            - link "李晓学" [ref=e417] [cursor=pointer]:
+              - /url: /people/name-182611?tab=learnList
+            - paragraph [ref=e418]: 平凡的事情做出不平凡的自己，才是最大的价值体现。
+            - paragraph [ref=e419]
+          - generic [ref=e422]:
+            - paragraph [ref=e423]: 李晓学的学习清单
+            - link "仓存、固定资产、现金管理与总账对账常见问题10问" [ref=e425] [cursor=pointer]:
+              - /url: /school/learnList/356505928373560064?source=poster_page
+            - paragraph [ref=e427]: 推荐语：本期清单以仓存管理与总账对账、固定资产与总账对账、现金管理与总账对账为具体应用场景，以对账操作的步骤为切入点，展示详细对账的实操，总结出对账不平的常见原因类型。
+            - generic [ref=e428]
+        - generic [ref=e433]:
+          - generic [ref=e434]:
+            - link "header" [ref=e435] [cursor=pointer]:
+              - /url: /people/joshuajiang-196889736?tab=learnList
+            - link "Joshua_Jiang" [ref=e437] [cursor=pointer]:
+              - /url: /people/joshuajiang-196889736?tab=learnList
+            - paragraph [ref=e438]: 解决任何问题的核心都是：学习+成长+改变！
+            - paragraph [ref=e439]
+          - generic [ref=e442]:
+            - paragraph [ref=e443]: Joshua_Jiang的学习清单
+            - link "存货核算：打通业务财务一体化的任督二脉" [ref=e445] [cursor=pointer]:
+              - /url: /school/learnList/356231938216223488?source=poster_page
+            - paragraph [ref=e447]: 推荐语：作为业务和财务的桥梁，存货核算重要性不言而喻，希望大家通过学习，顺利打通业务财务一体化的任督二脉，应对存货核算的各类问题。
+            - generic [ref=e448]
+        - generic [ref=e453]:
+          - generic [ref=e454]:
+            - link "header" [ref=e455] [cursor=pointer]:
+              - /url: /people/name-2147461236?tab=learnList
+            - link "福分小熊" [ref=e457] [cursor=pointer]:
+              - /url: /people/name-2147461236?tab=learnList
+            - paragraph [ref=e458]: 实施交流分享，文章梳理总结，寻找最佳实践。
+            - paragraph [ref=e459]
+          - generic [ref=e462]:
+            - paragraph [ref=e463]: 福分小熊的学习清单
+            - link "从小白到上线，银企入门敲门砖" [ref=e465] [cursor=pointer]:
+              - /url: /school/learnList/357778203450204928?source=poster_page
+            - paragraph [ref=e467]: 推荐语：小熊从21年9月开始，全身心投入银企与资金专业实施过程中，自己学习总结，或提单咨询总部老师，或测试跑系统时，总会遇到很多问题和不解，在总部老师/公司前辈的帮助下，对星空银企实施也算是小有心得。
+            - generic [ref=e468]
+        - generic [ref=e473]:
+          - generic [ref=e474]:
+            - link "header" [ref=e475] [cursor=pointer]:
+              - /url: /people/name-2147467500?tab=learnList
+            - link "boolean" [ref=e477] [cursor=pointer]:
+              - /url: /people/name-2147467500?tab=learnList
+            - paragraph [ref=e478]: 爱思考，爱记录，爱分享。
+            - paragraph [ref=e479]
+          - generic [ref=e482]:
+            - paragraph [ref=e483]: boolean的学习清单
+            - link "金蝶EAS自主扩展从入门到进阶" [ref=e485] [cursor=pointer]:
+              - /url: /school/learnList/357207457644909056?source=poster_page
+            - paragraph [ref=e487]: 推荐语：作为一个金蝶EAS的需求开发人员，经常会遇到很多用户的开发需求，通过灵活使用单据转换平台、工作流和DEP动态扩展平台，可以应对日常工作中的大部分用户需求。
+            - generic [ref=e488]
+        - generic [ref=e493]:
+          - generic [ref=e494]:
+            - link "header" [ref=e495] [cursor=pointer]:
+              - /url: /people/name-116584788286313984?tab=learnList
+            - link "吴锐雄" [ref=e497] [cursor=pointer]:
+              - /url: /people/name-116584788286313984?tab=learnList
+            - paragraph [ref=e498]: 行动是通向成功的唯一途径。
+            - paragraph [ref=e499]
+          - generic [ref=e502]:
+            - paragraph [ref=e503]: 吴锐雄的学习清单
+            - link "由易到难，轻松开发苍穹移动端" [ref=e505] [cursor=pointer]:
+              - /url: /school/learnList/357556192866503424?source=poster_page
+            - paragraph [ref=e507]: 推荐语：移动终端设备经过多年的发展，已经成为和pc端并驾齐驱的重要终端，几乎所有的客户都有移动端的业务需求，我们需要掌握移动端开发的技能，让自己的能力更上一个台阶。
+            - generic [ref=e508]
+        - generic [ref=e513]:
+          - generic [ref=e514]:
+            - link "header" [ref=e515] [cursor=pointer]:
+              - /url: /people/name-229002221680596224?tab=learnList
+            - link "ISV研发赋能部吴富彪" [ref=e517] [cursor=pointer]:
+              - /url: /people/name-229002221680596224?tab=learnList
+            - paragraph [ref=e518]: 种一棵树最好的时间是十年前，其次是现在。
+            - paragraph [ref=e519]
+          - generic [ref=e522]:
+            - paragraph [ref=e523]: ISV研发赋能部吴富彪的学习清单
+            - link "让业务动起来，轻松玩转苍穹“流程”" [ref=e525] [cursor=pointer]:
+              - /url: /school/learnList/356121541216078592?source=poster_page
+            - paragraph [ref=e527]: 推荐语：金蝶云•苍穹流程服务云，遵循WfMC流程模型，支持BPMN2.0规范，结合金蝶熔炼的企业管理最佳实践，提供各行业、各业务类型的端到端业务流程模型。
+            - generic [ref=e528]
+  - generic:
+    - text: 
+    - generic [ref=e534]:
+      - generic [ref=e535]:
+        - generic [ref=e538] [cursor=pointer]: 签到
+        - generic [ref=e542] [cursor=pointer]: 我有建议
+        - link "成长中心 成长中心" [ref=e545] [cursor=pointer]:
+          - /url: /centertask
+          - generic [ref=e546]:
+            - img "成长中心" [ref=e547]
+            - generic [ref=e549]: 成长中心
+        - generic [ref=e556] [cursor=pointer]: 联系我们
+        - generic [ref=e562] [cursor=pointer]: 移动端
+      - generic [ref=e564] [cursor=pointer]: 
+    - text: 

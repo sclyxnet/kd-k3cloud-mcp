@@ -1,0 +1,291 @@
+- generic [ref=e4]:
+  - banner [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - link "金蝶云社区" [ref=e10] [cursor=pointer]:
+          - /url: /
+          - img "金蝶云社区" [ref=e11]
+        - generic "切换产品线" [ref=e12] [cursor=pointer]
+      - navigation [ref=e13]:
+        - complementary [ref=e15]:
+          - link "首页" [ref=e16] [cursor=pointer]:
+            - /url: /
+          - link "帮助中心" [ref=e17] [cursor=pointer]:
+            - /url: /knowledge
+          - link "论坛 " [ref=e19] [cursor=pointer]:
+            - /url: javascript:void(0);
+            - text: 论坛
+            - generic [ref=e20]: 
+          - link "学习成长" [ref=e21] [cursor=pointer]:
+            - /url: /school?productLineId=null
+      - search [ref=e22]:
+        - complementary [ref=e23]:
+          - generic [ref=e26]:
+            - generic [ref=e27]:
+              - img "搜索" [ref=e29] [cursor=pointer]
+              - generic [ref=e30]: 搜索您感兴趣的内容
+            - text: 
+        - img "dropdown-logo" [ref=e34] [cursor=pointer]
+      - img "黄豆AI" [ref=e39] [cursor=pointer]
+    - text:  
+  - main [ref=e40]:
+    - generic [ref=e43]:
+      - generic [ref=e46]:
+        - generic [ref=e49]:
+          - generic [ref=e51]:
+            - paragraph [ref=e52]:
+              - link "社区创作技能包1.0来啦，欢迎大家体验，欢迎大家提需求！" [ref=e53] [cursor=pointer]:
+                - /url: https://vip.kingdee.com/questions/832637172053714944?productLineId=1&lang=zh-CN
+              - generic [ref=e54]: 有奖活动
+            - link "你希望社区推出什么AI能力？大胆提出来！ 描述场景：你在社区里遇到什么痛点？ 说明需求：希望有一个什么样的Skill来帮你？ 举例说明：有没有类似功能的参考？ （详细描述你使用社区的真实场景，痛点和需求，越具体越好）" [ref=e55] [cursor=pointer]:
+              - /url: https://vip.kingdee.com/questions/832637172053714944?productLineId=1&lang=zh-CN
+          - link "【公告】2026 年五一假期金蝶服务值班安排" [ref=e57] [cursor=pointer]:
+            - /url: /article/837003689125658112
+          - link "社区特性快报：创新广场全新改版！更好逛、更懂你，让你的每次参与都算数" [ref=e59] [cursor=pointer]:
+            - /url: /article/837072365888035584
+        - generic [ref=e60]:
+          - list [ref=e62]:
+            - listitem [ref=e63]: 我的订阅
+            - listitem [ref=e64]: 创见者分享
+          - generic [ref=e68]:
+            - generic [ref=e70]:
+              - generic [ref=e71]:
+                - generic [ref=e73]:
+                  - img "BOS热门问题" [ref=e74]
+                  - generic [ref=e75]: BOS热门问题
+                - generic [ref=e76] [cursor=pointer]: 换一换
+              - generic [ref=e78]:
+                - generic [ref=e79]:
+                  - link "logo" [ref=e80] [cursor=pointer]:
+                    - /url: /knowledge/specialDetail/349586136861371648
+                    - img "logo" [ref=e81]
+                  - paragraph [ref=e82]:
+                    - link "金蝶云·星空热门问题解决方案合辑" [ref=e83] [cursor=pointer]:
+                      - /url: /knowledge/specialDetail/349586136861371648
+                - list [ref=e84]:
+                  - listitem [ref=e85]:
+                    - link "BOS平台 - 表达式 - Context - SERVICETYPE" [ref=e86] [cursor=pointer]:
+                      - /url: /knowledge/661582466863376128
+                  - listitem [ref=e87]:
+                    - link "套打模板与打印常见问题：套打模板保存提示名称重复" [ref=e88] [cursor=pointer]:
+                      - /url: /school/detail/734099038823244544
+            - generic [ref=e90]:
+              - generic [ref=e91]:
+                - generic [ref=e93]:
+                  - img "服务公开课" [ref=e94]
+                  - generic [ref=e95]: 服务公开课
+                - generic [ref=e96] [cursor=pointer]: 查看更多
+              - list [ref=e99]:
+                - listitem [ref=e100]:
+                  - paragraph [ref=e102]:
+                    - link "工作流功能介绍和常见问题分享" [ref=e103] [cursor=pointer]:
+                      - /url: /school/liveCourse/832214467831637504
+                - listitem [ref=e104]:
+                  - paragraph [ref=e106]:
+                    - link "做数据的侦探：金蝶云星空报表勾稽关系排查“破案”指南" [ref=e107] [cursor=pointer]:
+                      - /url: /school/liveCourse/795951158719824640
+                - listitem [ref=e108]:
+                  - paragraph [ref=e110]:
+                    - link "星空企业版&标准版私有云部署运维高频问题第四期" [ref=e111] [cursor=pointer]:
+                      - /url: /school/liveCourse/791699948818893824
+                - listitem [ref=e112]:
+                  - paragraph [ref=e114]:
+                    - link "往来单据字段携带配置功能分享" [ref=e115] [cursor=pointer]:
+                      - /url: /school/liveCourse/789187039454792704
+            - generic [ref=e117]:
+              - generic [ref=e118]:
+                - generic [ref=e120]:
+                  - img "最新产品提问" [ref=e121]
+                  - generic [ref=e122]: 最新产品提问
+                - generic [ref=e123] [cursor=pointer]: 查看更多
+              - generic [ref=e125]:
+                - generic [ref=e126]:
+                  - generic [ref=e127]: 我关注的产品话题
+                  - generic [ref=e128]: 新增等待回答数：53
+                - generic [ref=e129]:
+                  - paragraph [ref=e130]:
+                    - link "供应链" [ref=e131] [cursor=pointer]:
+                      - /url: /topics/4942?#noAnswer
+                    - link "34" [ref=e132] [cursor=pointer]:
+                      - /url: /topics/4942?#noAnswer
+                  - paragraph [ref=e133]:
+                    - link "流程中心" [ref=e134] [cursor=pointer]:
+                      - /url: /topics/4947?#noAnswer
+                    - link "5" [ref=e135] [cursor=pointer]:
+                      - /url: /topics/4947?#noAnswer
+                  - paragraph [ref=e136]:
+                    - link "BOS平台" [ref=e137] [cursor=pointer]:
+                      - /url: /topics/6961?#noAnswer
+                    - link "14" [ref=e138] [cursor=pointer]:
+                      - /url: /topics/6961?#noAnswer
+            - generic [ref=e139] [cursor=pointer]:
+              - generic [ref=e141]: 
+              - paragraph [ref=e142]: 点击订阅更多内容
+          - generic [ref=e143]:
+            - generic [ref=e144]:
+              - img [ref=e145]
+              - generic [ref=e146]: 创见者分享
+              - generic [ref=e147]: 分享经验和行业见解，共同成长
+              - link "前往文章" [ref=e148] [cursor=pointer]:
+                - /url: /article?productLineId=1
+            - list [ref=e150]:
+              - listitem [ref=e151] [cursor=pointer]: 推荐
+              - listitem [ref=e152] [cursor=pointer]: 热门
+              - listitem [ref=e153] [cursor=pointer]: 场景化实践
+            - generic [ref=e156]:
+              - generic [ref=e157]:
+                - generic [ref=e159]:
+                  - paragraph [ref=e160]:
+                    - link "BOSS语句整理！！！花了两个小时！！！" [ref=e161] [cursor=pointer]:
+                      - /url: /article/422885285635266304
+                  - link "本文详细阐述了在不同字段类型下设置前置条件及过滤语句的多种用法，包括文本类、日期类、单选辅助资料、下拉列表、分组字段、复选框、单据状态、单据类型、数值型、多类别基础资料列表字段、基础资料字段、多选类字段等。文本类字段介绍了如何设置文本不为空或为空的条件，以及如何在文本中查找特定值。日期类字段讲解了日期的比较、计算及格式化。单选辅助资料、下拉列表、分组字段、复选框等字段类型则介绍了如何判断它们的特定状态或值。数值型字段涉及了比较与取整操作。多类别基础资料字段和多选类字段则提供了多种选择条件的设置方法。此外，还介绍了实体服务规则、字段值更新事件及过滤语句的高级用法，包括使用lambda函数进行遍历、计数、求和、拼接等操作，以及它们在不同业务场景中的应用示例。最后，强调了编写条件语句的注意事项和符号的正确使用。" [ref=e162] [cursor=pointer]:
+                    - /url: /article/422885285635266304
+                - generic [ref=e163]:
+                  - generic [ref=e166]:
+                    - link "金蝶云社区-cq_l" [ref=e169] [cursor=pointer]:
+                      - /url: javascript:;
+                      - img "金蝶云社区-cq_l" [ref=e170]
+                    - generic [ref=e173] [cursor=pointer]: cq_l
+                  - generic [ref=e175]:
+                    - generic [ref=e176] [cursor=pointer]:
+                      - text: 已赞
+                      - generic [ref=e178]: 3,677
+                    - generic [ref=e181]: 17.5万
+                    - generic [ref=e185]: "234"
+                    - generic [ref=e186] [cursor=pointer]: 收藏 4,814
+              - generic [ref=e188]:
+                - generic [ref=e189]:
+                  - generic [ref=e190]:
+                    - paragraph [ref=e191]:
+                      - link "【新手入门】插件实操【分享汇总】" [ref=e192] [cursor=pointer]:
+                        - /url: /article/64993872014591232
+                    - link "本文是金蝶二开经验的分享，强调了直接实践的重要性，并详细介绍了金蝶插件开发，包括表单插件的入门、赋值取值、常用方法，列表插件的常用方法、单据列表颜色、值显示等，动态表单插件的事件，操作服务插件的校验器、事务事件等，报表插件的多种报表类型，WebAPI接口的调用与自定义，单据转换插件及定时任务插件等。" [ref=e193] [cursor=pointer]:
+                      - /url: /article/64993872014591232
+                  - img "题图" [ref=e194]
+                - generic [ref=e195]:
+                  - generic [ref=e198]:
+                    - link "金蝶云社区-林荫大道_找工作" [ref=e201] [cursor=pointer]:
+                      - /url: javascript:;
+                      - img "金蝶云社区-林荫大道_找工作" [ref=e202]
+                    - generic [ref=e205] [cursor=pointer]: 林荫大道_找工作
+                  - generic [ref=e207]:
+                    - generic [ref=e208] [cursor=pointer]:
+                      - text: 已赞
+                      - generic [ref=e210]: 3,116
+                    - generic [ref=e213]: 735.3万
+                    - generic [ref=e217]: "212"
+                    - generic [ref=e218] [cursor=pointer]:
+                      - generic [ref=e220]: 已收藏
+                      - text: 4,291
+              - generic [ref=e221]:
+                - generic [ref=e223]:
+                  - paragraph [ref=e224]:
+                    - link "【合辑】金蝶云星空BOS平台-知识地图" [ref=e225] [cursor=pointer]:
+                      - /url: /article/57859651290906368
+                  - link "金蝶云星空BOS是自主研发的新一代技术平台，基于动态领域建模技术，可快速搭建商业应用。文本介绍了其快速入门指南、产品文档，涵盖安装部署、开发环境、最佳实践案例及各模块功能场景。" [ref=e226] [cursor=pointer]:
+                    - /url: /article/57859651290906368
+                - generic [ref=e227]:
+                  - generic [ref=e230]:
+                    - link "金蝶云社区-黄志洪" [ref=e233] [cursor=pointer]:
+                      - /url: javascript:;
+                      - img "金蝶云社区-黄志洪" [ref=e234]
+                    - generic [ref=e237] [cursor=pointer]: 黄志洪
+                  - generic [ref=e239]:
+                    - generic [ref=e240] [cursor=pointer]:
+                      - text: 赞
+                      - generic [ref=e242]: 2,458
+                    - generic [ref=e245]: 25.1万
+                    - generic [ref=e249]: "93"
+                    - generic [ref=e250] [cursor=pointer]: 收藏 2,765
+              - generic [ref=e252]:
+                - generic [ref=e254]:
+                  - paragraph [ref=e255]:
+                    - link "金蝶云·星空BOS中级开发14期直播课程汇总" [ref=e256] [cursor=pointer]:
+                      - /url: /article/58625080145523457
+                  - link "金蝶云·星空BOS中级开发14期课程涵盖了BOS开发技巧、最佳实践、账表设计、Web与App插件开发、系统集成、业务流与工作流、文件服务、移动平台开发等多个方面。每期课程详细讲解不同主题，包括原理学习、实践操作、常见问题解答及示例代码，助力开发者提升能力。课程资料与回放地址均提供，便于自主学习与复习。" [ref=e257] [cursor=pointer]:
+                    - /url: /article/58625080145523457
+                - generic [ref=e258]:
+                  - generic [ref=e261]:
+                    - link "金蝶云社区-云小萌_社区小管家" [ref=e264] [cursor=pointer]:
+                      - /url: javascript:;
+                      - img "金蝶云社区-云小萌_社区小管家" [ref=e265]
+                    - generic [ref=e268] [cursor=pointer]: 云小萌_社区小管家
+                  - generic [ref=e270]:
+                    - generic [ref=e271] [cursor=pointer]:
+                      - text: 已赞
+                      - generic [ref=e273]: 2,373
+                    - generic [ref=e276]: 10.8万
+                    - generic [ref=e280]: "218"
+                    - generic [ref=e281] [cursor=pointer]:
+                      - generic [ref=e283]: 已收藏
+                      - text: 1,810
+              - generic [ref=e284]:
+                - generic [ref=e285]:
+                  - generic [ref=e286]:
+                    - paragraph [ref=e287]:
+                      - link "【Python插件入门】第1篇：Python插件入门讲解--序言" [ref=e288] [cursor=pointer]:
+                        - /url: /article/330000931540780032
+                    - link "本文概述了Python在金蝶云星空平台中的应用，特别是Python插件开发的介绍和优势。Python因其学习门槛低，受到非技术背景人士的青睐。金蝶云星空支持Python开发，但缺乏官方教程和学习资料。作者计划分享自己的心得，讲解Python插件入门知识，包括Python简介、金蝶云星空中的Python插件与C#插件的区别、学习Python插件的基础要求、内容规划及实践案例。此外，作者还建立了交流群以促进学习。" [ref=e289] [cursor=pointer]:
+                      - /url: /article/330000931540780032
+                  - img "题图" [ref=e290]
+                - generic [ref=e291]:
+                  - generic [ref=e294]:
+                    - link "金蝶云社区-CQ周玉立" [ref=e297] [cursor=pointer]:
+                      - /url: javascript:;
+                      - img "金蝶云社区-CQ周玉立" [ref=e298]
+                    - generic [ref=e301] [cursor=pointer]: CQ周玉立
+                  - generic [ref=e303]:
+                    - generic [ref=e304] [cursor=pointer]:
+                      - text: 已赞
+                      - generic [ref=e306]: 1,723
+                    - generic [ref=e309]: 13.3万
+                    - generic [ref=e313]: "103"
+                    - generic [ref=e314] [cursor=pointer]: 收藏 1,811
+            - generic [ref=e317]: 正在为你加载更多...
+      - generic [ref=e321]:
+        - paragraph [ref=e322]:
+          - link "社区指南" [ref=e323] [cursor=pointer]:
+            - /url: /guide
+          - link "金蝶中国用户使用协议" [ref=e324] [cursor=pointer]:
+            - /url: https://account.kdcloud.com/privacy?id=3515726087781072896
+          - link "金蝶云社区用户协议" [ref=e325] [cursor=pointer]:
+            - /url: /agreement
+          - link "隐私政策" [ref=e326] [cursor=pointer]:
+            - /url: https://passport.kingdee.com/passport/#/policy-agree/privacy-policy
+          - generic [ref=e327]: 廉洁举报受理邮箱：jubao@kingdee.com
+          - generic [ref=e328]: 联系邮箱（侵权举报）：kdysq@kingdee.com
+        - paragraph [ref=e329]:
+          - link "意见反馈" [ref=e330] [cursor=pointer]:
+            - /url: javascript:void(0);
+          - text: 友情链接：
+          - link "金蝶官网" [ref=e331] [cursor=pointer]:
+            - /url: http://www.kingdee.com/
+          - link "金蝶AI星瀚" [ref=e332] [cursor=pointer]:
+            - /url: https://www.kdcloud.com/web/
+          - link "精斗云" [ref=e333] [cursor=pointer]:
+            - /url: http://www.jdy.com/
+          - link "云之家" [ref=e334] [cursor=pointer]:
+            - /url: https://www.yunzhijia.com/home/
+          - link "工业互联网" [ref=e335] [cursor=pointer]:
+            - /url: https://www.yundeeiot.com/home
+          - generic [ref=e336] [cursor=pointer]: 金蝶云盘
+          - link "金蝶云社区" [ref=e337] [cursor=pointer]:
+            - /url: /#
+          - link "金蝶云问答" [ref=e338] [cursor=pointer]:
+            - /url: /topics
+          - link "金蝶云课程" [ref=e339] [cursor=pointer]:
+            - /url: /school
+        - paragraph [ref=e340]: 金蝶软件（中国）有限公司
+        - generic [ref=e341]:
+          - paragraph [ref=e342]:
+            - text: 版权所有©1993 - 2026
+            - link "粤ICP备05041751号" [ref=e343] [cursor=pointer]:
+              - /url: https://beian.miit.gov.cn/
+          - paragraph [ref=e344]:
+            - link "粤公网安备 44030502002324号" [ref=e345] [cursor=pointer]:
+              - /url: http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=44030502002324
+  - generic:
+    - generic [ref=e347]:
+      - generic [ref=e350] [cursor=pointer]: 签到
+      - generic [ref=e352] [cursor=pointer]: 
+    - text: 
