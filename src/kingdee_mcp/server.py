@@ -3904,18 +3904,31 @@ BILL_TEMPLATES: dict[str, dict] = {
         ],
     },
     "PUR_PurchaseOrder": {
-        "_desc": "采购订单。FPurchaseOrgId 必填；供应商 FSupplierId；分录 FPurchaseOrderEntry 含 FMaterialId/FUnitID/FQty/FPrice/FTaxPrice/FTaxRate。",
-        "FBillTypeID": {"FNumber": "CGDD01_SYS"},
-        "FPurchaseOrgId": {"FNumber": "100"},
+        "_desc": (
+            "采购订单（真机实测 2026-10-16）。必填：FBillTypeID/FDate/FPurchaseOrgId/FPurchaseDeptId/FSupplierId。\n"
+            "⚠️⚠️ 分录体 key 必须是 FPOOrderEntry（采购订单实体名是 POOrder，对应表 t_PUR_POOrder），\n"
+            "**不是** FPurchaseOrderEntry——写错时金蝶收不到整段分录，会误报「物料编码是必填项」\n"
+            "「订单数量必须大于0」，极难排查（历史模板即错在此处）。\n"
+            "分录需同时给 FUnitId/FPriceUnitId/FStockUnitID 三个单位；\n"
+            "FDeliveryLastDate 必须晚于 FDeliveryEarlyDate，否则报「最晚交货日期必须晚于最早交货日期」。"
+        ),
+        "FBillTypeID": {"FNumber": "<单据类型编码，如 CGDD17；可用 kingdee_view_bill 查已有单的 BillTypeId.Number>"},
+        "FDate": "<业务日期 YYYY-MM-DD>",
+        "FPurchaseOrgId": {"FNumber": "<采购组织编码>"},
+        "FPurchaseDeptId": {"FNumber": "<采购部门编码>"},
         "FSupplierId": {"FNumber": "<供应商编码>"},
-        "FPurchaseOrderEntry": [
+        "FPOOrderEntry": [
             {
                 "FMaterialId": {"FNumber": "<物料编码>"},
-                "FUnitID": {"FNumber": "<采购单位>"},
+                "FUnitId": {"FNumber": "<采购单位>"},
+                "FPriceUnitId": {"FNumber": "<计价单位>"},
+                "FStockUnitID": {"FNumber": "<库存单位>"},
                 "FQty": 1,
-                "FPrice": 0.01,
-                "FTaxPrice": 0.01,
-                "FTaxRate": 13,
+                "FPrice": 4.5125,
+                "FTaxPrice": 4.5125,
+                "FTaxRate": 0,
+                "FDeliveryEarlyDate": "<最早交货日期 YYYY-MM-DD>",
+                "FDeliveryLastDate": "<最晚交货日期，须晚于前者>",
             }
         ],
     },
@@ -3972,6 +3985,18 @@ async def kingdee_validate_bill(params: SaveInput) -> str:
                 if miss:
                     entry_issues.append({"entry": entry_name, "row": idx, "missing_required": miss})
 
+        # 分录体 key 核对：key 写错时金蝶收不到整段分录，会误报「物料编码是必填项」
+        # 「订单数量必须大于0」，本地必填检查却全过（历史踩坑：采购订单应为 FPOOrderEntry，
+        # 写成 FPurchaseOrderEntry 时校验通过但保存必失败）。此处显式拦下。
+        suspected_entries = [k for k, v in fixed.items()
+                             if isinstance(v, list) and v and isinstance(v[0], dict)]
+        known_entries = {k for k, d in validator.fields.items() if getattr(d, "is_entry", False)}
+        unknown_entry = [k for k in suspected_entries if k not in known_entries]
+        if unknown_entry:
+            entry_issues.append({
+                "entry": ", ".join(unknown_entry),
+                "issue": "分录体 key 不在本表单已知单据体中（写错会导致整段分录被丢弃）",
+            })
         ok = (len(missing_required) == 0 and len(entry_issues) == 0)
         suggestions = []
         if missing_required:
@@ -3979,6 +4004,11 @@ async def kingdee_validate_bill(params: SaveInput) -> str:
         for ei in entry_issues:
             if "missing_required" in ei:
                 suggestions.append(f"{ei['entry']} 第{ei['row']}行缺失必填：{', '.join(ei['missing_required'])}")
+            elif "issue" in ei:
+                suggestions.append(
+                    f"⚠️ {ei['entry']}：{ei['issue']}。已知单据体：{', '.join(sorted(known_entries)) or '（未识别到）'}。"
+                    f"请用 kingdee_view_bill 查一张已有单据，以其数组字段名（如 POOrderEntry→FPOOrderEntry）为准。"
+                )
         if fixes:
             suggestions.append(f"保存时将自动修正 {len(fixes)} 处字段名（详见 auto_fixes）")
 
@@ -7941,14 +7971,21 @@ async def kingdee_view_production_order(params: ViewInput) -> str:
 
     必填参数：
     - form_id: "PRD_MO"
-    - bill_id: 单据 FID 或 bill_no: 单据编号
+    - bill_id: 单据内码 FID
+
+    mode=summary（默认）：关联字段只保留 Id / Number / Name，缩减体积；mode=full 返回原始 JSON。
 
     Returns:
         str: JSON 格式的生产订单完整数据
     """
     try:
-        result = await _post("view", ["PRD_MO", params.to_view_payload()])
-        return _fmt({"form_id": "PRD_MO", "data": result.get("Result", result)})
+        # View 统一走 _post_raw（raw JSON body + 小写 formid，无 Model 包装）。
+        # ⚠️ 修复：此前误用 params.to_view_payload()，该方法在 ViewInput 上并不存在
+        # （全文件仅此一处调用、从未定义），导致工具必抛 AttributeError。
+        result = await _post_raw("view", params.form_id or "PRD_MO", {"Id": params.bill_id})
+        if params.mode == "full":
+            return _fmt(result)
+        return _fmt(_simplify_view_result(result))
     except Exception as e:
         return _err(e)
 

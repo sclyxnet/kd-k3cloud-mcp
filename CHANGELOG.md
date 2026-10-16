@@ -4,7 +4,39 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-> 当前 PyPI 版本：`0.3.2`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+> 当前 PyPI 版本：`0.3.3`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+
+---
+
+## [0.3.3] — 2026-10-16（全量 103 工具真机实测）
+
+> 对全部 **103 个工具**逐一直连真实账套执行验证（写操作用不存在的单据号，不产生业务数据）；
+> 另做 **save → view → delete 真实闭环**验证写链路，创建后已删除、无残数据。
+
+### Fixed（修复）
+
+- **`kingdee_view_production_order` 必抛 `AttributeError`**：代码调用了 `params.to_view_payload()`，
+  但该方法在 `ViewInput` 上**从未定义**（全文件仅此一处调用），导致该工具 100% 不可用。
+  改为与 `kingdee_view_bill` 一致的 `_post_raw("view", form_id, {"Id": bill_id})`，并支持 `mode=summary/full`。
+- **采购订单模板分录体 key 错误（隐蔽性极高）**：`BILL_TEMPLATES["PUR_PurchaseOrder"]` 给的
+  `FPurchaseOrderEntry` 是错的，正确实体名是 **`FPOOrderEntry`**（采购订单实体为 `POOrder`，表 `t_PUR_POOrder`）。
+  写错时金蝶收不到整段分录，会误报「物料编码是必填项」「订单数量必须大于0」，而本地校验全过，极难排查。
+  模板已按真机实测重写（补齐 `FDate`/`FPurchaseDeptId`/`FUnitId`/`FPriceUnitId`/`FStockUnitID`/交货日期）。
+  已核对：`SAL_SaleOrder` 的 `FSaleOrderEntry` 是**正确**的，未改动。
+- **`kingdee_validate_bill` 会被误导**：上一条场景下校验报「通过」但保存必失败。
+  校验器新增**分录体 key 核对**：顶层数组字段若不在本表单已知单据体中，给出明确告警并列出正确的单据体名。
+
+### 实测结论（TEST20230518）
+
+| 分类 | 数量 | 说明 |
+|---|---|---|
+| 只读工具正常 | 70 | 返回真实业务数据 |
+| 写工具链路正常 | 25 | 端点可达、参数格式正确（以不存在单据号调用，金蝶正常拒绝） |
+| 业务级拒绝 | 7 | SQL Server 未配置 2 项；专用服务端点不存在 5 项（已降级为明确提示） |
+| 需手工指定 | 1 | `kingdee_switch_data_center`（需传账套标识，已单独验证通过） |
+| **代码缺陷** | **0** | — |
+
+写闭环实证：`save` 成功（FID `190511` / 单号 `CGDD088513`）→ `view` 确认存在 → `delete` 成功 → 复查确认已删除。
 
 ---
 
