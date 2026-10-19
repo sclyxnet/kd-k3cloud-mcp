@@ -4,7 +4,70 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-> 当前 PyPI 版本：`0.3.7`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+> 当前 PyPI 版本：`0.3.8`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+
+---
+
+## [0.3.8] — 2026-10-19（报表专用 API：库存分页报表 StockReportQueryService）
+
+> 用户指正：**报表查询有专门的报表 API，不是单据/基础资料那一套**。
+> 依据金蝶社区 kb 527582059091789824（GetSysReportData）与 kb 384025718453622528（库存分页报表）。
+
+### 报表 API 的正确分工（实证）
+
+| 报表种类 | 端点 | 状态 |
+|---|---|---|
+| 财务总账类账表（科目余额表等） | `DynamicFormService.GetSysReportData`（HTTP 双字段 formid+data，Model 必录，FilterString 数组格式） | ✅ 0.3.4 前已有，本轮真机复验（科目余额表 22 行真实数据） |
+| **供应链库存分页账表**（物料收发明细/汇总、库存台账、库存账龄等） | `Kingdee.K3.SCM.WebApi.ServicesStub.StockReportQueryService.GetReportData,Kingdee.K3.SCM.WebApi.ServicesStub`（版本 ≥ PT-146906 [8.0.0.202203]） | ✅ **本轮新增** |
+| **财务报表系统模板报表**（资产负债表/利润表/现金流量表等，用户 2026-10-19 指正补充） | `Kingdee.BOS.KDS.ServiceFacade.ServicesStub.KDSReportAPIStub.GetReportData,Kingdee.BOS.KDS.ServiceFacade.ServicesStub` | ✅ **本轮新增** |
+
+**关于 KDS 报表 API 的重要更正**：此前代码注释写「KDSReportAPI 一律 Unknown Error 不可用」——
+系**端点名不完整**所致（漏了逗号后的 `Kingdee.BOS.KDS.ServiceFacade.ServicesStub` 组件后缀）。
+补全后端点可用。其参数与另两种完全不同：**不用 form_id**，按报表系统「报表模板编码 + 核算维度」取数：
+
+```json
+{"parameters":["{\"ReportType\":1,\"ReportNumber\":\"BBMB0001\",\"AcctSystemNumber\":\"KJHSTX01_SYS\",
+  \"AcctPolicyNumber\":\"KJZC01_SYS\",\"OrgNumber\":\"100\",\"CurrencyNumber\":\"PRE001\",
+  \"CurrUnitNumber\":\"JEDW01_SYS\",\"CycleType\":4,\"Year\":2023,\"Period\":5,
+  \"DataType\":\"Json\",\"ResultType\":\"0\"}"]}
+```
+
+实测该账套无 `BBMB0001` 模板（报错「未找到对应参数的报表模板」= 参数结构正确、模板不存在）；
+ReportNumber 与核算维度编码需从财务报表系统 / 官方「报表API工具」（kb 316988267696445696）获取。
+
+### 库存分页报表接口的三个关键差异（全部实测 2026-10-19）
+
+1. **HTTP 层是 raw JSON body**：`Content-Type: application/json`，
+   `body = {"parameters": ["<内层JSON字符串>"]}`。用 form-urlencoded `data=` 一律返回
+   「参数错误，请检查！」——这与单据/通用接口完全不同（新增 `_post_parameters_json()`）。
+2. **FSCHEMEID 必录且不能用默认方案**：过滤方案从 `BOS_FilterScheme`（表 `T_BAS_FILTERSCHEME`，
+   主键即 FSCHEMEID，元数据驱动发现）查得。实测 `STK_StockDetailRpt` 有 55 个方案（1 默认 + 54 可用）。
+3. 返回 `{"success":true,"CurQueryId":"...","data":[行对象]}`；**翻页时传回 CurQueryId**，
+   此时过滤条件不再应用（从首次查询结果中取指定页）。
+
+### Added（新增）
+
+- **`kingdee_query_kds_report`**（第 107 个工具）：KDS 财务报表系统模板报表取数
+  （ReportType/ReportNumber/AcctSystemNumber/AcctPolicyNumber/OrgNumber/CurrencyNumber/
+  CurrUnitNumber/ScopeType/ProfitCenter/CycleType/Year/Period/DataType/ResultType 全参支持）。
+  内置报错解读（「参数不支持」vs「未找到报表模板」分别指向参数结构与模板缺失）。
+- **`kingdee_query_stock_report`**（第 105 个工具）：库存分页报表取数。
+  入参 form_id / scheme_id / quickly_condition / more_condition / start_row / limit(≤10000) / field_keys / cur_query_id。
+- **`kingdee_list_filter_schemes`**（第 106 个工具）：列出报表的过滤方案（标注 is_default/is_share），
+  引导选非默认方案；无需 SQL（官方文档原需 `SELECT ... FROM T_BAS_FILTERSCHEME`，
+  现经 `BOS_FilterScheme` 元数据对象直接查询）。
+- **`_post_parameters_json()`**：parameters 包装的 raw JSON 调用辅助（带重试 + 会话保活）。
+- `_QUERYABLE_MODEL_TYPES` 注释与权威分类 `note` 修正：**报表(900)可取数但必须走报表专用 API**，
+  不能用 `kingdee_query_bills`（ExecuteBillQuery）。
+
+### 验证情况（真机 TEST20230518）
+
+| 项 | 结果 |
+|---|---|
+| `kingdee_list_filter_schemes(STK_StockDetailRpt)` | ✅ 55 个方案（1 默认 + 54 可用：成品蛋/鸡只/原料蛋…） |
+| `kingdee_query_stock_report`（成品蛋方案） | ✅ 返回 3 行真实数据（FGUID/FSTOCKORGNAME…）+ CurQueryId |
+| form data= 方式对照（反证） | ✅ 失败「参数错误」，证实必须 raw JSON |
+| `kingdee_query_report`（科目余额表）复验 | ✅ 22 行（银行存款/集团应收/其他应收款） |
 
 ---
 

@@ -710,6 +710,18 @@ _EP = {
     # 分组信息查询（SDK: QueryGroupInfo）。用途预期为「按分组查业务对象」，
     # 真实返回结构尚未在本环境实测——服务端恢复后需先探测再写解析，勿凭猜测消费。
     "group_info":  "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.QueryGroupInfo.common.kdsvc",
+    # 库存分页报表专用取数接口（金蝶社区 kb 384025718453622528）。
+    # ⚠️ 与 GetSysReportData（平台公共报表接口）并存：该端点为供应链库存报表专用，
+    # 版本要求 >= PT-146906 [8.0.0.202203]；请求体特殊——{"parameters": ["<JSON字符串>"]}，
+    # 内层 JSON 含 FORMID/FSCHEMEID(必录且不能是默认方案)/QuicklyCondition/MoreCondition/
+    # StartRow/Limit(≤10000)/CurQueryId/FieldKeys。
+    # 过滤方案内码查法（官方）：SELECT FSCHEMEID,FSCHEMENAME FROM T_BAS_FILTERSCHEME WHERE FFORMID='报表FORMID'
+    "stock_report": "Kingdee.K3.SCM.WebApi.ServicesStub.StockReportQueryService.GetReportData,Kingdee.K3.SCM.WebApi.ServicesStub.common.kdsvc",
+    # 总账(KDS)报表专用取数接口（用户 2026-10-19 指正补充）。
+    # ⚠️ 此前代码注释写"KDSReportAPIService 一律 Unknown Error 不可用"系**端点名不完整**所致——
+    # 完整服务名带组件后缀（逗号 + Kingdee.BOS.KDS.ServiceFacade.ServicesStub）。
+    # 参数格式待实测确认（先按 parameters 包装 raw JSON 探测）。
+    "kds_report": "Kingdee.BOS.KDS.ServiceFacade.ServicesStub.KDSReportAPIStub.GetReportData,Kingdee.BOS.KDS.ServiceFacade.ServicesStub.common.kdsvc",
 }
 
 # Session 缓存（避免每次请求都重新登录）
@@ -747,7 +759,11 @@ _MODEL_TYPE_NAMES: dict[str, str] = {
     "2200": "日志归档",
     "710":  "状态迁移图",
 }
-# WebAPI 可直接查询/操作的模型类型（ExecuteBillQuery / Save / View 等）
+# WebAPI 可取数的模型类型。⚠️ 语义区分（用户指正 + 金蝶社区 kb 527582059091789824 /
+# 384025718453622528 实证）：报表(900)虽可取数，但**不是** ExecuteBillQuery 那一套——
+# 财务总账类走 GetSysReportData（kingdee_query_report），供应链库存分页账表走
+# StockReportQueryService.GetReportData（kingdee_query_stock_report，FSCHEMEID 必录）；
+# 单据(100)/基础资料(400)才用 ExecuteBillQuery / Save / View。
 _QUERYABLE_MODEL_TYPES = {"100", "400", "900"}
 
 _OBJTYPE_CACHE: Optional[List[dict]] = None
@@ -891,6 +907,9 @@ async def _authoritative_category(form_id: str) -> Optional[dict]:
         "note": (
             "权威分类，来自元数据对象注册表 BOS_ObjectType（表 T_META_OBJECTTYPE）。"
             "queryable=false 表示该对象是界面/模板/日志等，WebAPI 查询与保存通常不适用。"
+            "注意：model_type=900（报表）虽 queryable=true，但不能用 kingdee_query_bills——"
+            "财务报表走 kingdee_query_report(GetSysReportData)，库存分页账表走 "
+            "kingdee_query_stock_report(StockReportQueryService，需过滤方案)。"
         ),
     }
 
@@ -2981,6 +3000,285 @@ def _is_session_expired(resp) -> bool:
 
 async def _retry_sleep(attempt: int) -> None:
     await asyncio.sleep(_NET_RETRY_DELAY * attempt)
+
+
+async def _post_parameters_json(ep_key: str, inner: dict) -> Any:
+    """专用 WebAPI 的 parameters 包装调用（raw JSON body）。
+
+    部分专用服务（如库存分页报表 StockReportQueryService.GetReportData）的 HTTP 层
+    **不是** form-urlencoded `data=`，而是 raw JSON body：
+        Content-Type: application/json
+        body = {"parameters": ["<内层参数对象的 JSON 字符串>"]}
+    实测（2026-10-19）：form data= 方式一律返回「参数错误，请检查！」，raw JSON 方式成功。
+    """
+    global _session_id
+    if not _session_id:
+        await _login()
+    body = json.dumps({"parameters": [json.dumps(inner, ensure_ascii=False)]}, ensure_ascii=False)
+    start_time = time.perf_counter()
+    last_err: Optional[Exception] = None
+    for attempt in range(1, _NET_RETRY + 1):
+        try:
+            async with httpx.AsyncClient(timeout=30, proxy=None,
+                                          transport=httpx.AsyncHTTPTransport(http1=True)) as client:
+                if not _session_id:
+                    await _login()
+                resp = await client.post(
+                    _url(ep_key),
+                    content=body.encode("utf-8"),
+                    headers={
+                        "Content-Type": "application/json; charset=utf-8",
+                        "Cookie": f"kdservice-sessionid={_session_id}",
+                    },
+                )
+                if _is_session_expired(resp):
+                    _session_id = None
+                    await _login()
+                    resp = await client.post(
+                        _url(ep_key),
+                        content=body.encode("utf-8"),
+                        headers={
+                            "Content-Type": "application/json; charset=utf-8",
+                            "Cookie": f"kdservice-sessionid={_session_id}",
+                        },
+                    )
+                resp.raise_for_status()
+                return _safe_json(resp)
+        except _TRANSIENT_ERRORS as e:
+            _session_id = None
+            last_err = e
+            if attempt < _NET_RETRY:
+                await _retry_sleep(attempt)
+                continue
+            raise
+        except httpx.HTTPStatusError as e:
+            last_err = e
+            if e.response.status_code >= 500 and attempt < _NET_RETRY:
+                if e.response.status_code in (502, 503, 504):
+                    _session_id = None
+                await _retry_sleep(attempt)
+                continue
+            raise
+    raise last_err or RuntimeError("请求失败")
+
+
+async def _list_filter_schemes(report_form_id: str) -> List[dict]:
+    """查报表的过滤方案列表（BOS_FilterScheme → T_BAS_FILTERSCHEME）。
+
+    返回 [{scheme_id, name, is_default, is_share}]。默认方案（FIsDefault=true）
+    不能用于库存分页报表接口（官方文档明确），调用方需选非默认方案。
+    """
+    r = await _post("query", {
+        "FormId": "BOS_FilterScheme",
+        "FieldKeys": "FSCHEMEID,FFormID,FSchemeName,FIsDefault,FIsShare",
+        "FilterString": f"FFormID='{report_form_id}'",
+        "StartRow": 0, "Limit": 200,
+    })
+    out = []
+    for row in (r if isinstance(r, list) else []):
+        if not isinstance(row, list) or len(row) < 3:
+            continue
+        out.append({
+            "scheme_id": str(row[0] or ""),
+            "name": str(row[2] or ""),
+            "is_default": bool(row[3]) if len(row) > 3 else False,
+            "is_share": bool(row[4]) if len(row) > 4 else False,
+        })
+    return out
+
+
+@mcp.tool(
+    name="kingdee_list_filter_schemes",
+    annotations={"title": "列出报表过滤方案", "readOnlyHint": True, "destructiveHint": False,
+                 "idempotentHint": True, "openWorldHint": False}
+)
+async def kingdee_list_filter_schemes(report_form_id: str) -> str:
+    """列出指定报表可用的过滤方案（FSCHEMEID），供库存分页报表接口使用。
+
+    库存分页报表专用接口（kingdee_query_stock_report）**必录** FSCHEMEID，且官方文档明确
+    **不能用默认方案**。本工具从 `BOS_FilterScheme`（表 `T_BAS_FILTERSCHEME`）查出该报表
+    的所有方案并标注 is_default / is_share，请选一个非默认（is_default=false）的方案。
+
+    Args:
+        report_form_id: 报表 form_id，如 STK_StockDetailRpt（物料收发明细表）、
+                        STK_StockBookRpt（库存台账）、STK_StockClassStaRpt（物料收发分类统计表）。
+                        可用 kingdee_list_object_types(model_type="报表") 查找。
+    """
+    try:
+        schemes = await _list_filter_schemes(report_form_id)
+        usable = [s for s in schemes if not s["is_default"]]
+        return _fmt({
+            "ok": True,
+            "report_form_id": report_form_id,
+            "count": len(schemes),
+            "usable_count": len(usable),
+            "schemes": schemes,
+            "tip": (
+                "is_default=true 的默认方案不能用于库存分页报表接口；"
+                "请把非默认方案的 scheme_id 传给 kingdee_query_stock_report 的 scheme_id 参数。"
+                "若 usable_count=0，可先在金蝶页面保存一个过滤方案，或改用 kingdee_query_report（GetSysReportData，SchemeId 可空）。"
+            ),
+        })
+    except Exception as e:
+        return _err(e, op="list_filter_schemes")
+
+
+class StockReportQueryInput(BaseModel):
+    """库存分页报表查询入参"""
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    form_id: str = Field(..., description="报表 FORMID，如 STK_StockDetailRpt(物料收发明细表)、STK_StockBookRpt(库存台账)、STK_StockClassStaRpt(物料收发分类统计表)")
+    scheme_id: str = Field(..., description="过滤方案内码 FSCHEMEID（必录，不能用默认方案），用 kingdee_list_filter_schemes 获取")
+    quickly_condition: List[dict] = Field(
+        default_factory=list,
+        description='快捷过滤条件数组，如 [{"FieldName":"BeginMaterialId","FieldValue":"041602"},{"FieldName":"BeginDate","FieldValue":"2024-01-01"}]。字段绑定属性因报表而异',
+    )
+    more_condition: List[dict] = Field(
+        default_factory=list,
+        description='高级过滤条件数组，如 [{"Left":"","FieldName":"FQty","Compare":">","FieldValue":"0","Right":"","Logic":"AND"}]',
+    )
+    start_row: int = Field(default=0, ge=0, description="开始行索引，从 0 开始")
+    limit: int = Field(default=100, ge=1, le=10000, description="最大返回行数（≤10000）")
+    field_keys: str = Field(default="", description="返回字段，逗号分隔；留空返回该过滤方案全部字段")
+    cur_query_id: str = Field(default="", description="分页查询标识：翻页时传上一次返回的 CurQueryId（此时过滤条件不再生效，从首次查询结果中取指定页）")
+
+
+@mcp.tool(
+    name="kingdee_query_stock_report",
+    annotations={"title": "查询库存分页报表", "readOnlyHint": True, "destructiveHint": False,
+                 "idempotentHint": True, "openWorldHint": False}
+)
+async def kingdee_query_stock_report(params: StockReportQueryInput) -> str:
+    """通过**库存分页报表专用接口**取报表数据（区别于单据 ExecuteBillQuery 与通用 GetSysReportData）。
+
+    端点：Kingdee.K3.SCM.WebApi.ServicesStub.StockReportQueryService.GetReportData,Kingdee.K3.SCM.WebApi.ServicesStub
+    （金蝶社区 kb 384025718453622528；版本要求 >= PT-146906 [8.0.0.202203]）。
+
+    与其它接口的关键差异（全部实测 2026-10-19）：
+    1. HTTP 层是 **raw JSON body** `{"parameters": ["<内层JSON字符串>"]}`，不是 form-urlencoded；
+       用 form 方式一律返回「参数错误，请检查！」。
+    2. FSCHEMEID 必录且**不能用默认方案**（先用 kingdee_list_filter_schemes 查）。
+    3. 返回 `{"success":true,"CurQueryId":"...","data":[...行对象...]}`；
+       翻页时传回 CurQueryId，此时过滤条件不再应用。
+
+    适用报表：物料收发明细/汇总、库存台账、库存汇总统计、库存账龄分析等分页账表
+    （官方声明以库存报表验证为主，其他模块分页账表大多也适用）。
+    财务总账类报表请用 kingdee_query_report（GetSysReportData）。
+
+    Args:
+        params: StockReportQueryInput
+    """
+    try:
+        inner: dict = {
+            "FORMID": params.form_id,
+            "FSCHEMEID": params.scheme_id,
+            "QuicklyCondition": params.quickly_condition,
+            "MoreCondition": params.more_condition,
+            "StartRow": params.start_row,
+            "Limit": params.limit,
+            "FieldKeys": params.field_keys,
+        }
+        if params.cur_query_id:
+            inner["CurQueryId"] = params.cur_query_id
+        r = await _post_parameters_json("stock_report", inner)
+        if isinstance(r, dict) and r.get("success") is False:
+            return _fmt({"ok": False, "error": r.get("message", "查询失败"),
+                         "hint": "常见原因：FSCHEMEID 为默认方案/不存在、快捷过滤字段名不对。"
+                                 "先用 kingdee_list_filter_schemes 确认方案。"})
+        return _fmt({
+            "ok": True,
+            "form_id": params.form_id,
+            "scheme_id": params.scheme_id,
+            "cur_query_id": r.get("CurQueryId", "") if isinstance(r, dict) else "",
+            "data": r.get("data") if isinstance(r, dict) else r,
+            "tip": "翻页时把返回的 cur_query_id 传入并可保持相同 start_row/limit；此时过滤条件不生效。",
+        })
+    except Exception as e:
+        return _err(e, op="query_stock_report")
+
+
+class KDSReportQueryInput(BaseModel):
+    """KDS 财务报表（报表系统模板报表）查询入参。
+
+    ⚠️ 与 GetSysReportData / StockReportQuery 完全不同：KDS 报表 API 按报表系统里的
+    「报表模板编码 + 会计核算维度」取数，不用 form_id。ReportNumber 等编码来自
+    财务报表系统（或官方「报表API工具」生成参数）。
+    """
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    report_type: int = Field(default=1, description="报表类型（报表API工具生成，样例 1）")
+    report_number: str = Field(..., description="报表模板编码（财务报表系统内，如 BBMB0001；非 form_id）")
+    acct_system_number: str = Field(default="", description="账簿体系编码，如 KJHSTX01_SYS")
+    acct_policy_number: str = Field(default="", description="会计政策编码，如 KJZC01_SYS")
+    org_number: str = Field(..., description="组织编码")
+    currency_number: str = Field(default="PRE001", description="币别编码，如 PRE001(人民币)")
+    curr_unit_number: str = Field(default="JEDW01_SYS", description="计量单位编码")
+    scope_type_number: str = Field(default="", description="范围类型编码（可选）")
+    scope_number: str = Field(default="", description="范围编码（可选）")
+    profit_center_number: str = Field(default="", description="利润中心编码（可选）")
+    cycle_type: int = Field(default=4, description="周期类型（样例 4=月）")
+    year: int = Field(..., description="年度")
+    period: int = Field(..., description="期间")
+    data_type: str = Field(default="Json", description="数据类型：Json / Excel / 项目数据")
+    result_type: str = Field(default="0", description="结果类型：0=文本 1=文件")
+
+
+@mcp.tool(
+    name="kingdee_query_kds_report",
+    annotations={"title": "查询KDS财务报表", "readOnlyHint": True, "destructiveHint": False,
+                 "idempotentHint": True, "openWorldHint": False}
+)
+async def kingdee_query_kds_report(params: KDSReportQueryInput) -> str:
+    """通过 **KDS 财务报表专用 API** 取报表数据（报表系统模板报表，如资产负债表/利润表/现金流量表）。
+
+    端点：Kingdee.BOS.KDS.ServiceFacade.ServicesStub.KDSReportAPIStub.GetReportData,Kingdee.BOS.KDS.ServiceFacade.ServicesStub
+    （用户 2026-10-19 指正；此前注释"KDSReportAPI 不可用"系端点名不完整——漏了逗号后的组件后缀。）
+
+    三种报表取数接口的分工：
+    - 账表（科目余额表 GL_RPT_AccountBalance 等）→ kingdee_query_report（GetSysReportData）
+    - 供应链库存分页账表 → kingdee_query_stock_report（StockReportQueryService）
+    - **财务报表系统模板报表（本工具）→ KDSReportAPIStub.GetReportData**
+
+    参数格式（官方"报表API工具"可生成）：
+      {"parameters":["{\"ReportType\":1,\"ReportNumber\":\"BBMB0001\",...,\"DataType\":\"Json\",\"ResultType\":\"0\"}"]}
+    HTTP 层为 raw JSON body（同库存分页报表），非 form-urlencoded。
+
+    报错解读：{"status":"1","message":"未找到对应参数的报表模板"} = 参数结构正确但该账套
+    没有对应报表模板（核对 ReportNumber/账簿体系/会计政策/组织编码）。
+
+    Args:
+        params: KDSReportQueryInput
+    """
+    try:
+        inner: dict = {
+            "ReportType": params.report_type,
+            "ReportNumber": params.report_number,
+            "OrgNumber": params.org_number,
+            "CurrencyNumber": params.currency_number,
+            "CurrUnitNumber": params.curr_unit_number,
+            "CycleType": params.cycle_type,
+            "Year": params.year,
+            "Period": params.period,
+            "DataType": params.data_type,
+            "ResultType": params.result_type,
+        }
+        if params.acct_system_number:
+            inner["AcctSystemNumber"] = params.acct_system_number
+        if params.acct_policy_number:
+            inner["AcctPolicyNumber"] = params.acct_policy_number
+        if params.scope_type_number:
+            inner["ScopeTypeNumber"] = params.scope_type_number
+        if params.scope_number:
+            inner["ScopeNumber"] = params.scope_number
+        if params.profit_center_number:
+            inner["ProfitCenterNumber"] = params.profit_center_number
+        r = await _post_parameters_json("kds_report", inner)
+        if isinstance(r, dict) and str(r.get("status")) == "1":
+            return _fmt({"ok": False, "error": r.get("message", "查询失败"),
+                         "hint": ("「给定的报表类型参数不支持」=内层参数结构不对；"
+                                  "「未找到对应参数的报表模板」=该账套无此报表模板，"
+                                  "请用财务报表系统/报表API工具核对 ReportNumber 与核算维度编码。")})
+        return _fmt({"ok": True, "data": r})
+    except Exception as e:
+        return _err(e, op="query_kds_report")
 
 
 async def _post(ep_key: str, payload: Any) -> Any:
