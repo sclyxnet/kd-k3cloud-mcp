@@ -4,7 +4,67 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-> 当前 PyPI 版本：`0.3.4`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+> 当前 PyPI 版本：`0.3.5`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+
+---
+
+## [0.3.5] — 2026-10-19（对齐官方 SDK 8.2.0 + 元数据对象分类）
+
+> 依据官方 `SDK_Python3.0_V8.2.0`（`kingdee.cdp.webapi.sdk-8.2.0-py3-none-any.whl`，
+> 模块 `k3cloud_webapi_sdk`）核对接口面，并补全「元数据对象分类」。
+
+### 与官方 SDK 的接口面对比（`K3CloudApiSdk` 方法逐一核对）
+
+| 维度 | 官方 SDK | 本工程 |
+|---|---|---|
+| 认证 | **仅** AppId/AppSecret 签名（`x-api-signature` / `x-kd-signature` / HMAC-SHA256） | ✅ 额外支持账号密码 `ValidateUser`，双模式可切 |
+| 数据中心/语言列表 | `GetDataCenters` | ✅ 有，且支持中文名解析、切换 |
+| 元数据 | `QueryBusinessInfo` | ✅ 有，且已做缓存 + 中文解析 + 动态模板 |
+| 分组信息 | `QueryGroupInfo` | ⚠️ 端点已补，**返回结构未实测**（服务端故障），未写解析 |
+| 附件 | `AttachmentUpload` / `AttachmentDownLoad` | ⚠️ 端点已补，工具未加 |
+| 异步轮询 | `InvokeMethod.QUERY`（`beginmethod=BeginQueryImpl` + `querymethod=QueryAsyncResult` + TaskId 轮询） | ⚠️ 端点已补，未接入 |
+
+**结论：不整体替换为官方 SDK**（会丢掉账号密码登录与全部中文交互能力），改为把 SDK 暴露的端点补全，
+使两种登录方式都能调用。
+
+### Added（新增）
+
+- **补齐 14 个官方 SDK 端点**（`_EP`，逐条注明来源与用途）：
+  `bill_query`（BillQuery，JSON 结构返回，SDK 2023-09-14 新增）、`batch_save`、`draft`（暂存）、
+  `allocate`（分配）、`cancel_allocate`、`flex_save`（弹性域保存）、`send_msg`、`group_save`、
+  `disassembly`（拆单）、`group_delete`、`switch_org`（切换组织，多组织）、`workflow_audit`、
+  `attachment_upload` / `attachment_download`、`group_info`（QueryGroupInfo）。
+- **`MetadataValidator.object_category()`**：从元数据**结构特征**推断业务对象分类
+  （单据 / 基础资料 / 报表 / 动态表单），并给出 `confidence` 与逐条 `evidence`。
+  推断依据（均可从元数据直接观察，非猜测）：
+  1. `NeedReturnData.Id` 即**业务对象 FID**（对应用户所说 `T_META_ObjectType` 的 FID）；
+  2. form_id 命名前缀（`BD_`=基础资料、`PUR_/SAL_/STK_/AR_/AP_/GL_/FA_/PRD_`=业务单据、`GLR_/RPT_`=报表）；
+  3. 主表存在 `FBillNo`（单据编号）→ 单据；
+  4. 存在 `EntryEntity` 分录体 → 单据（基础资料通常无分录）；
+  5. 无分录体且字段较少 → 基础资料。
+- `kingdee_get_fields` / `kingdee_get_bill_template` / `kingdee_list_forms(verify=True)` 输出新增
+  `object_category`；模板新增 `_pk_field`（元数据主键，如 `FID`）。
+
+### 关于「支持的单据应以元数据为准」
+
+已确认的事实边界（避免误导）：
+
+- `QueryBusinessInfo` 返回 `NeedReturnData.Id` = 业务对象 FID、`Name` = 多语言名、`Entrys[].Key/TableName/Fields` = 结构，
+  **但不返回对象分类**（基础资料/单据/报表）。其 `EntityType`（`HeadEntity`/`SubHeadEntity`/`EntryEntity`/`SubEntryEntity`）
+  表达的是**单据体结构类型**，不是对象分类——这是两个不同的概念，勿混淆。
+- 因此对象分类目前为**结构推断**（已标注 `inferred: true` + 依据）。权威分类的两条路：
+  1. SQL 探查 `T_META_ObjectType`（现有 `kingdee_discover_table` 可直接查，需配置 `MCP_SQLSERVER_*`）；
+  2. `QueryGroupInfo` —— 端点已补，但**返回结构本环境尚未实测**，服务端恢复后需先探测再写解析，不能凭猜测消费。
+
+### 验证情况
+
+| 项 | 结果 |
+|---|---|
+| 编译 + 方法归属（防上轮 `validate_and_fix` 被吞的回归复检） | ✅ |
+| 对象分类推断 `PUR_PurchaseOrder` | ✅ `单据` / `confidence=high` / 3 条依据 |
+| `get_fields` / `get_bill_template` 输出 `object_category`、`_pk_field` | ✅ |
+| `validate_bill` 无回归 | ✅ |
+| 新增 14 个端点的真机调用 | ⏸ **未验证**：金蝶服务端持续故障（登录返回 `sa 登录失败`），需联网用例全部受阻 |
 
 ---
 

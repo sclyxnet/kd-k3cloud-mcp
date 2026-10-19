@@ -686,6 +686,30 @@ _EP = {
     "get_dc_list": "Kingdee.BOS.ServiceFacade.ServicesStub.Account.AccountService.GetDataCenterList.common.kdsvc",
     # 登录语言列表（LCID）：登录页语言下拉框，返回 [{LocaleId, LocaleName, Alias, LicenseType}]。
     "get_dc_langs": "Kingdee.BOS.ServiceFacade.ServicesStub.Account.AccountService.GetDataCenterLoginLanguages.common.kdsvc",
+    # ── 以下对齐官方 SDK kingdee.cdp.webapi.sdk 8.2.0（K3CloudApiSdk 方法面）──────────
+    # 来源：SDK_Python3.0_V8.2.0/python_sdk_v8.2.0/k3cloud_webapi_sdk/main.py
+    # 说明：SDK 仅支持 AppId/AppSecret 签名认证（x-api-signature/x-kd-signature），
+    #      不支持账号密码登录；故不整体替换本模块，而是把 SDK 暴露的端点补全，
+    #      使两种登录方式都能调用这些接口。
+    # BillQuery：单据查询（JSON 结构返回，2023-09-14 SDK 新增），与 query(ExecuteBillQuery 返回数组) 并存。
+    "bill_query":  "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.BillQuery.common.kdsvc",
+    # BatchSave：批量保存（可配合 InvokeMethod.QUERY 异步轮询，见 _post_raw 的 query_mode）。
+    "batch_save":  "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.BatchSave.common.kdsvc",
+    "draft":       "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.Draft.common.kdsvc",          # 暂存
+    "allocate":    "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.Allocate.common.kdsvc",      # 分配
+    "cancel_allocate": "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.CancelAllocate.common.kdsvc",  # 取消分配
+    "flex_save":   "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.FlexSave.common.kdsvc",      # 弹性域保存
+    "send_msg":    "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.SendMsg.common.kdsvc",       # 发送消息
+    "group_save":  "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.GroupSave.common.kdsvc",     # 分组保存
+    "disassembly": "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.Disassembly.common.kdsvc",   # 拆单
+    "group_delete": "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.GroupDelete.common.kdsvc",  # 分组删除
+    "switch_org":  "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.SwitchOrg.common.kdsvc",     # 切换组织（多组织）
+    "workflow_audit": "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.WorkflowAudit.common.kdsvc",  # 工作流审批
+    "attachment_upload":   "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.AttachmentUpload.common.kdsvc",
+    "attachment_download": "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.AttachmentDownLoad.common.kdsvc",
+    # 分组信息查询（SDK: QueryGroupInfo）。用途预期为「按分组查业务对象」，
+    # 真实返回结构尚未在本环境实测——服务端恢复后需先探测再写解析，勿凭猜测消费。
+    "group_info":  "Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.QueryGroupInfo.common.kdsvc",
 }
 
 # Session 缓存（避免每次请求都重新登录）
@@ -857,6 +881,74 @@ class MetadataValidator:
             if d.is_entry and d.children and d.table_name:
                 out.append(d)
         return out
+
+    def object_category(self) -> dict:
+        """推断业务对象分类（基础资料 / 动态表单 / 单据 / 报表…）。
+
+        ⚠️ 这是**结构推断**，不是权威分类。`QueryBusinessInfo` 只返回对象内部结构
+        （Entrys/Fields/EntityType），**不返回**对象在元数据里的分类；权威分类来自
+        `T_META_ObjectType`（需 SQL 探查，见 kingdee_discover_table）或
+        `QueryGroupInfo`（返回结构本环境尚未实测）。
+
+        推断依据（均可从元数据直接观察）：
+          1. form_id 命名前缀：BD_=基础资料，PUR_/SAL_/STK_/AR_/AP_/GL_=业务单据，GLR_/RPT_=报表
+          2. 存在 FBillNo 字段            → 单据（单据编号）
+          3. 存在 EntryEntity 分录体       → 单据（基础资料通常无分录）
+          4. 被其他对象大量参照（LookUpObjectFormId 指向本对象）→ 基础资料
+        每条依据都会在 evidence 里列出，便于人工复核。
+        """
+        head = [d for d in self.fields.values() if not d.is_entry]
+        entries = [d for d in self.fields.values() if d.is_entry]
+        entry_entities = [d for d in self.entry_bodies() if d.table_name and not d.table_name.startswith("V_")]
+        names = {d.name for d in head}
+        evidence: List[str] = []
+        score = {"单据": 0, "基础资料": 0, "报表": 0, "动态表单": 0}
+
+        fid = (self.metadata.get("Result", {}).get("NeedReturnData") or {}).get("Id") or ""
+        prefix = fid.split("_")[0].upper() if "_" in fid else fid.upper()
+        if prefix == "BD":
+            score["基础资料"] += 2
+            evidence.append(f"form_id 前缀 BD_（{fid}）通常为基础资料")
+        elif prefix in ("GLR", "RPT", "RP"):
+            score["报表"] += 2
+            evidence.append(f"form_id 前缀 {prefix}_（{fid}）通常为报表")
+        elif prefix in ("PUR", "SAL", "STK", "AR", "AP", "GL", "FA", "PRD", "EXP", "INV", "ENG", "QMS"):
+            score["单据"] += 2
+            evidence.append(f"form_id 前缀 {prefix}_（{fid}）通常为业务单据")
+
+        if "FBillNo" in names:
+            score["单据"] += 2
+            evidence.append("主表存在 FBillNo（单据编号）字段")
+        if entry_entities:
+            score["单据"] += 2
+            evidence.append(f"存在 {len(entry_entities)} 个 EntryEntity 分录体（如 {entry_entities[0].name}）")
+        if not entries and len(head) <= 40 and "FBillNo" not in names:
+            score["基础资料"] += 1
+            evidence.append("无分录体且字段较少，符合基础资料特征")
+        if not entries and not head:
+            score["动态表单"] += 1
+            evidence.append("无主表字段，可能是纯动态表单/查询方案")
+
+        best = max(score, key=lambda k: score[k])
+        if score[best] == 0:
+            best, conf = "未知", "none"
+        elif score[best] >= 4:
+            conf = "high"
+        elif score[best] >= 2:
+            conf = "medium"
+        else:
+            conf = "low"
+        return {
+            "category": best,
+            "confidence": conf,
+            "inferred": True,
+            "scores": {k: v for k, v in score.items() if v},
+            "evidence": evidence,
+            "note": (
+                "结构推断结果，非元数据权威分类。权威分类请查 T_META_ObjectType"
+                "（kingdee_discover_table）或待 QueryGroupInfo 实测后补充。"
+            ),
+        }
 
     @staticmethod
     def _edit_distance(a: str, b: str) -> int:
@@ -4151,6 +4243,11 @@ async def kingdee_get_bill_template(form_id: str) -> str:
             validator = None
         tpl = _build_template_from_metadata(validator, form_id) if validator else None
         if tpl:
+            # 附带对象分类（结构推断）与主键字段，便于 AI 判断该对象能做什么操作
+            try:
+                tpl["_object_category"] = validator.object_category()
+            except Exception:
+                pass
             return _fmt({
                 "ok": True,
                 "form_id": form_id,
@@ -5764,6 +5861,10 @@ async def kingdee_list_forms(params: FormSearchInput) -> str:
                     f2["name_source"] = "metadata"
                 if v.tables:
                     f2["db_tables"] = list(v.tables)
+                try:
+                    f2["object_category"] = v.object_category()
+                except Exception:
+                    pass
                 f2["verified"] = True
                 exists += 1
             elif v is not None:
@@ -5864,6 +5965,11 @@ async def kingdee_get_fields(params: FieldQueryInput) -> str:
         if validator.tables:
             result["db_tables"] = list(validator.tables)
         result["name_source"] = "metadata"
+        # 对象分类（结构推断，附依据；权威分类需 T_META_ObjectType / QueryGroupInfo）
+        try:
+            result["object_category"] = validator.object_category()
+        except Exception:
+            pass
     if not (validator and validator.fields):
         result["metadata_tip"] = (
             "QueryBusinessInfo 未返回元数据，已退回本地目录字段。"
