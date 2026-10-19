@@ -6060,6 +6060,15 @@ async def kingdee_list_object_types(params: ObjectTypeQueryInput) -> str:
 class FormSearchInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
     keyword: str = Field(default="", description="搜索关键词，如'员工'、'采购'、'库存'等，留空返回所有")
+    scope: str = Field(
+        default="all",
+        description=(
+            "搜索范围：all=账套全部业务对象（BOS_ObjectType，默认，约 7000+ 可读 form_id）；"
+            "catalog=仅本地常用表单索引（48 个，带语义描述/别名/推荐字段）；"
+            "queryable=全部对象中的可查询类型（单据/基础资料/报表）。"
+        ),
+    )
+    model_type: str = Field(default="", description="按元数据类型过滤（如'单据'/'400'/'基础资料'），仅 scope=all/queryable 时生效")
     verify: bool = Field(
         default=False,
         description=(
@@ -6069,6 +6078,7 @@ class FormSearchInput(BaseModel):
         ),
     )
     verify_limit: int = Field(default=8, ge=1, le=40, description="verify 时最多验证多少个候选 form_id")
+    limit: int = Field(default=50, ge=1, le=500, description="返回条数上限")
 
 
 class FieldQueryInput(BaseModel):
@@ -6100,31 +6110,71 @@ async def kingdee_list_forms(params: FormSearchInput) -> str:
     Returns:
         str: JSON 格式的表单列表，含 form_id、名称、描述、推荐字段、数据库表名
 
-    说明：本地 FORM_CATALOG 只是**可搜索索引**（57 个常用表单）。单个表单的权威结构
-    （表单名、物理表名、字段、必填项）一律以 QueryBusinessInfo 元数据为准，见
-    kingdee_get_fields / kingdee_get_bill_template。需要枚举账套内**全部**业务对象时，
-    传 verify=True 验证候选；或用 kingdee_discover_table 查 T_META_OBJECTTYPE
-    （form_id 即该表 FID，需配置 MCP_SQLSERVER_*）。
+    ⚠️ 0.3.6 修复「只支持写死目录」的 bug：本地 FORM_CATALOG 原本只有 48 个表单
+    （账套实际有 1348 个单据 + 1240 个基础资料，覆盖率不足 5%）。现默认 scope=all，
+    直接从 `BOS_ObjectType`（T_META_OBJECTTYPE）搜**账套全部业务对象**（只含可读 form_id，
+    自动排除 GUID——GUID 形态 WebAPI 不认）；FORM_CATALOG 降级为语义补充
+    （desc/别名/推荐字段/业务规则），仅 scope=catalog 时单独使用。
     """
     keyword = params.keyword.lower()
     results = []
+    source = "catalog"
 
-    for form_id, info in FORM_CATALOG.items():
-        # 匹配名称、别名或描述
-        if not keyword or (
-            keyword in info["name"].lower()
-            or any(keyword in alias.lower() for alias in info["alias"])
-            or info.get("desc", "").startswith(keyword)
-        ):
-            results.append({
-                "form_id": form_id,
-                "name": info["name"],
-                "alias": info["alias"],
-                "desc": info.get("desc", ""),
-                "recommended_fields": info["fields"],
-                "db_tables": info.get("db_tables", ()),
-                "has_business_rules": bool(info.get("business_rules")),
-            })
+    # ── 默认路径：元数据对象注册表全量搜索 ──
+    if params.scope in ("all", "queryable"):
+        try:
+            objs = await _fetch_object_types()
+        except Exception as e:
+            objs = None
+        if objs:
+            source = "BOS_ObjectType(T_META_OBJECTTYPE)"
+            mt = params.model_type.strip()
+            if mt and not mt.isdigit():
+                mt = next((k for k, v in _MODEL_TYPE_NAMES.items() if v == mt), mt)
+            for o in objs:
+                if o.get("fid_kind") != "standard":
+                    continue
+                if params.scope == "queryable" and not o.get("queryable"):
+                    continue
+                if mt and o.get("model_type") != mt:
+                    continue
+                if keyword and keyword not in o["fid"].lower() and keyword not in o["name"].lower():
+                    continue
+                info = FORM_CATALOG.get(o["fid"], {})
+                results.append({
+                    "form_id": o["fid"],
+                    "name": o["name"],
+                    "subsystem": o["subsystem"],
+                    "model_type": o["model_type"],
+                    "model_type_name": o["model_type_name"],
+                    "queryable": o.get("queryable", False),
+                    # 本地语义补充（只有 48 个常用表单有）
+                    "desc": info.get("desc", ""),
+                    "alias": info.get("alias", []),
+                    "recommended_fields": info.get("fields", ""),
+                    "has_business_rules": bool(info.get("business_rules")),
+                    "in_catalog": bool(info),
+                })
+            results = results[: params.limit]
+
+    # ── 本地目录路径（scope=catalog，或元数据目录不可达时兜底） ──
+    if not results:
+        source = "catalog"
+        for form_id, info in FORM_CATALOG.items():
+            if not keyword or (
+                keyword in info["name"].lower()
+                or any(keyword in alias.lower() for alias in info["alias"])
+                or info.get("desc", "").startswith(keyword)
+            ):
+                results.append({
+                    "form_id": form_id,
+                    "name": info["name"],
+                    "alias": info["alias"],
+                    "desc": info.get("desc", ""),
+                    "recommended_fields": info["fields"],
+                    "db_tables": info.get("db_tables", ()),
+                    "has_business_rules": bool(info.get("business_rules")),
+                })
 
     # 可选：用元数据验证候选 form_id 是否真实存在，并覆盖名称/表名
     verify_stats = None
@@ -6171,6 +6221,7 @@ async def kingdee_list_forms(params: FormSearchInput) -> str:
 
     out: dict[str, Any] = {
         "count": len(results),
+        "source": source,
         "tip": (
             "使用 form_id 调用 kingdee_query_bills 查询数据，"
             "或调用 kingdee_get_fields 获取完整字段和业务规则"

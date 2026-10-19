@@ -4,7 +4,71 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-> 当前 PyPI 版本：`0.3.6`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+> 当前 PyPI 版本：`0.3.7`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+
+---
+
+## [0.3.7] — 2026-10-19（FBaseObjectId 继承树 + ModelTypeId 全量对照 + 修复"只支持写死 48 个表单"）
+
+### ① 重名对象真相：FBaseObjectId 树形继承（用户指正）
+
+实测拉取 `BOS_ObjectType` 全量并带出 `FBaseObjectId.FID/FName`（该字段 LookUp 指向 BOS_ObjectType 自身）：
+
+- **10545 条对象中 5261 条有父对象、5284 条为根** —— 支持层层扩展，重名是正常的。
+- 以「采购订单」6 条为例，继承关系：
+
+```
+PUR_BillTemplate（采购业务单据模板）
+  └─ PUR_PurchaseOrder（标准单据, 100）
+       └─ dadc8800-6084-…（二开扩展, 100）
+            └─ 45b97b74-007a-…（再扩展, 100）
+BOS_SCMBillTemplate（1.2.5 供应链业务单据模板）
+  └─ SCP_PurchaseOrder（供应商协同平台, 100）
+BD_PurchaseOrderWarnObject（预警对象, 1300，独立）
+Pur_MobPurchaseOrderList（移动列表, 1400，独立）
+```
+
+- WebAPI 只认**可读 form_id**（根或可读形态），GUID 扩展对象不认（见 0.3.6 实测）——
+  扩展单据的二开字段需要用二开自己的可读 form_id（如 `lyx_gcxm` 这类）访问。
+
+### ② FModelTypeId 全量对照表（从小到大，账套实测 10545 条）
+
+| FModelTypeId | 类型 | 数量 | 样例 |
+|---|---|---|---|
+| 100 | 单据 | 1909 | 批号调整单、采购订单 |
+| 220 | 系统参数 | 305 | 费用报销系统参数 |
+| 400 | 基础资料 | 1871 | 物料、工程项目 |
+| 500 | 界面/表单 | 4090 | 电子会计档案集成 |
+| 600 | 套打模板 | 680 | 物料盘点（盲盘）套打模板 |
+| 700 | 转换规则 | 69 | 销售订单-销售退货单 |
+| 710 | 状态迁移图 | 20 | 其它入库单状态迁移图 |
+| 800 | 弹性域/辅助属性 | 13 | 核算维度 |
+| 900 | 报表 | 564 | 赠品统计报表 |
+| 1300 | 预警 | 74 | 预警对象演示（帐表） |
+| 1400 | 移动界面 | 937 | 移动单据列表 |
+| 1600 | 万能报表 | 6 | 交叉数据源类万能报表模板 |
+| 2200 | 日志归档 | 7 | 上机操作日志归档 |
+
+> 字段来源：`BOS_ObjectType.FModelTypeId`（领域模型 Id）。中文类型名为按实测样例归纳，
+> 非金蝶官方枚举文档。**WebAPI 可查询/操作**的只有 `100/400/900`（`_QUERYABLE_MODEL_TYPES`）。
+
+### ③ 修复「只支持写死 48 个表单」的 bug
+
+**Bug 本体**：本地 `FORM_CATALOG` 仅 48 个表单（单据 ~35 + 基础资料 8 + 其它），而账套实际有
+1909 个单据 + 1871 个基础资料 —— **覆盖率不足 5%**。`kingdee_list_forms` 原本只搜这 48 个，
+其余 95% 的对象 AI 根本发现不了。
+
+**修复**：`kingdee_list_forms` 新增 `scope` 参数：
+
+- `scope=all`（**默认**）：直接搜 `BOS_ObjectType` 全部可读 form_id（7179 个），
+  每条带 `subsystem` / `model_type_name` / `queryable` / `in_catalog` 标注；
+  `FORM_CATALOG` 降级为语义补充（desc/别名/推荐字段/业务规则，仅 48 个常用表单有）。
+- `scope=queryable`：只搜可查询类型（单据/基础资料/报表）。
+- `scope=catalog`：旧行为保留（仅本地 48 个）。
+- 新增 `model_type` / `limit` 过滤；返回值带 `source` 说明数据来源。
+
+**验证**（真机 TEST20230518）：`keyword=销售` 返回 10 个表单（`AP_SALOUTSTOCK` 销售出库单、
+`BD_SaleGroup` 销售组等），全部不在原 48 个目录里（`in_catalog=False`）——修复前这些对象完全不可见。
 
 ---
 
