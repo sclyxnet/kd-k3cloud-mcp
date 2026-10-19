@@ -9379,6 +9379,24 @@ async def kingdee_query_report(params: ReportQueryInput) -> str:
         inner = params.data
         # 实测确认：HTTP 双字段 formid + data(JSON字符串)，_post 的 report 分支实现
         result = await _post("report", (params.form_id, inner))
+        # 实测（2026-10-19）：GetSysReportData 只支持简单账表；分页/树形/直接SQL账表
+        # 报「此接口暂时只支持简单账表!」。此时按账表类型改走专用接口。
+        if isinstance(result, dict):
+            rs = (result.get("Result") or {}).get("ResponseStatus") or {}
+            errs = rs.get("Errors") or []
+            if not rs.get("IsSuccess", True) and any(
+                    "简单账表" in str(e.get("Message", "")) for e in errs if isinstance(e, dict)):
+                return _fmt({
+                    "ok": False,
+                    "form_id": params.form_id,
+                    "error": "此接口暂时只支持简单账表!",
+                    "hint": (
+                        f"{params.form_id} 是分页/树形/直接SQL账表，GetSysReportData 不支持。"
+                        "供应链库存分页账表请用 kingdee_query_stock_report"
+                        "（先用 kingdee_list_filter_schemes 拿**本报表**的过滤方案）；"
+                        "财务报表系统模板报表请用 kingdee_query_kds_report。"
+                    ),
+                })
         return _fmt(result)
     except Exception as e:
         return _err(e, op="report")

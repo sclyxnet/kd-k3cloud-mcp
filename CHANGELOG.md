@@ -4,9 +4,40 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-> 当前 PyPI 版本：`0.3.10`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+> 当前 PyPI 版本：`0.3.11`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
 
 ---
+
+## [0.3.11] — 2026-10-19（账表取数三条路边界全部实测：GetSysReportData 只支持简单账表）
+
+用户思路验证：「能不能根据报表的元数据读出过滤框字段」。实测结论如下。
+
+### 决定性实测结论
+
+| 路径 | 结果 |
+|---|---|
+| **过滤框元数据**（`STK_StockSummaryFilter` 物料收发汇总表过滤框） | 对象存在且 QueryBusinessInfo 能返回表单名，但**不返回界面字段的绑定属性**（界面控件绑定属性在 `FKERNELXML` 的 layout 里，WebAPI 不解析暴露）。此路在 WebAPI 侧走不通 |
+| **GetSysReportData 查分页账表** | 明确报「**此接口暂时只支持简单账表!**」。物料收发汇总表是分页账表，不适用 |
+| **StockReportQueryService（唯一正确接口）** | 接口本身可用（本报表自有方案 success=true）；QC 的物料/日期绑定属性（BeginMaterialId/EndMaterialId/BeginDate/EndDate）来自官方样例有效；**组织/仓库绑定属性名无法从 WebAPI 侧确认**，且带 QC 时该报表服务端计算重（120s 仍超时/非 JSON） |
+
+### Fixed（修复）
+
+- `kingdee_query_report` 识别「简单账表」报错，给出按账表类型选择专用接口的可操作提示
+  （分页账表→`kingdee_query_stock_report`、财务报表→`kingdee_query_kds_report`），
+  不再让调用方拿着 GetSysReportData 撞墙。
+
+### 待确认（需金蝶页面/BOS/SQL 侧确认）
+
+- 汇总表 QuicklyCondition 的组织/仓库**字段绑定属性名**：WebAPI 元数据不暴露，需在金蝶页面
+  过滤框查看，或 SQL 查 `T_META_OBJECTTYPE.FKERNELXML`（用户最初思路的来源）/`T_BAS_FILTERSCHEME` 方案 JSON。
+  确认后可在 `kingdee_query_stock_report` 增加按中文自动构造 QuicklyCondition 的能力。
+
+### 验证（真机 TEST20230518）
+
+科目余额表回归正常（RowCount=22）；汇总表走 GetSysReportData 正确返回「只支持简单账表」+ 提示。
+
+---
+
 
 ## [0.3.10] — 2026-10-19（库存报表实战踩坑固化）
 
