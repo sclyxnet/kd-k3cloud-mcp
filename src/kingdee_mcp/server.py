@@ -3281,6 +3281,131 @@ async def kingdee_query_kds_report(params: KDSReportQueryInput) -> str:
         return _err(e, op="query_kds_report")
 
 
+class FieldSearchInput(BaseModel):
+    """中文字段搜索入参（元数据 Name[2052] 驱动）"""
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    form_id: str = Field(..., description="表单标识，如 SAL_SaleOrder")
+    keyword: str = Field(..., description="中文关键词，如'客户'、'数量'、'日期'，可传多个用空格分隔（任一命中即返回）")
+    only_required: bool = Field(default=False, description="True 时只返回必填字段")
+    only_lookup: bool = Field(default=False, description="True 时只返回基础资料/单据参照字段（需要填编码的）")
+
+
+@mcp.tool(
+    name="kingdee_search_fields",
+    annotations={"title": "中文字段搜索", "readOnlyHint": True, "destructiveHint": False,
+                 "idempotentHint": True, "openWorldHint": False}
+)
+async def kingdee_search_fields(params: FieldSearchInput) -> str:
+    """**中文 → 字段 key**：按中文名在表单元数据里搜字段（自然语言建单的翻译第一步）。
+
+    用户说"添加销售订单，客户、数量、日期"，本工具把中文翻译成 WebAPI 字段：
+    返回每个命中的 {字段key, 中文名, 所在单据体, 是否必填, 参照对象, 表名}。
+    参照字段（lookup_form 非空）需要填编码 {"FNumber": "..."}，编码可用
+    kingdee_find_code 按中文名查得；非参照字段直接填值。
+
+    数据来源：QueryBusinessInfo 元数据（Fields[].Name 多语言 2052），非人工字典。
+    """
+    try:
+        r = await _post("metadata", {"FormId": params.form_id})
+        nrd = (r.get("Result") or {}).get("NeedReturnData")
+        if not nrd:
+            return _fmt({"ok": False, "error": "元数据不可达（form_id 或登录态问题）"})
+        kws = [k for k in params.keyword.split() if k]
+        zh = MetadataValidator._zh_name
+        out = []
+        for e in nrd.get("Entrys", []):
+            ekey, ename = e.get("Key"), zh(e.get("Name", []))
+            for f in e.get("Fields", []):
+                nm = "".join(v.get("Value", "") for v in (f.get("Name") or []) if isinstance(v, dict))
+                if not nm:
+                    continue
+                if not any(k in nm for k in kws):
+                    continue
+                must = bool(f.get("MustInput"))
+                if params.only_required and not must:
+                    continue
+                lk = str(f.get("LookUpObjectFormId") or "")
+                if params.only_lookup and not lk:
+                    continue
+                out.append({
+                    "key": f.get("Key"),
+                    "caption": nm,
+                    "entity": ekey,
+                    "entity_name": ename,
+                    "is_head": ekey == "FBillHead",
+                    "must_input": must,
+                    "lookup_form": lk or None,
+                    "fill_hint": (f'{{"FNumber": "<用 kingdee_find_code(form_id="{lk}", name=中文名) 查得>"}}'
+                                  if lk else "直接填值"),
+                })
+        return _fmt({
+            "ok": True, "form_id": params.form_id,
+            "matched": len(out),
+            "fields": out[:80],
+            "tip": ("组装 model：必填字段都要给值；参照字段填 {\"FNumber\": 编码}；"
+                    "编码用 kingdee_find_code 按中文名查；组装后先 kingdee_validate_bill 再 save。"),
+        })
+    except Exception as e:
+        return _err(e, op="search_fields")
+
+
+class FindCodeInput(BaseModel):
+    """中文值 → 编码查询入参"""
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    lookup_form: str = Field(..., description="参照对象 form_id，如 BD_Customer/BD_Supplier/BD_MATERIAL（来自 kingdee_search_fields 的 lookup_form）")
+    name: str = Field(..., description="中文名（模糊匹配），如'凤集'、'原料蛋'")
+    number_field: str = Field(default="FNumber", description="编码字段，一般 FNumber；员工用 FStaffNumber")
+    name_field: str = Field(default="FName", description="名称字段，一般 FName；辅助属性用 FDataValue")
+    limit: int = Field(default=10, ge=1, le=50)
+
+
+@mcp.tool(
+    name="kingdee_find_code",
+    annotations={"title": "中文名查编码", "readOnlyHint": True, "destructiveHint": False,
+                 "idempotentHint": True, "openWorldHint": False}
+)
+async def kingdee_find_code(params: FindCodeInput) -> str:
+    """**中文值 → 编码**：按中文名在基础资料里模糊查编码（自然语言建单的翻译第二步）。
+
+    用户说"客户是凤集"、"物料用原料蛋"，本工具返回 {"FNumber": "090002", "FName": "..."}，
+    直接填进 model 的参照字段。适用于任意参照对象（客户/供应商/物料/部门/组织/员工…）。
+
+    官方字段惯例（金蝶云社区 webapi 实践）：编码一般 FNumber（员工 FStaffNumber）、
+    名称一般 FName（辅助属性 FDataValue）、内码一般 FId（组织 FOrgId、用户 FUserId）。
+    """
+    try:
+        # 组织/用户等特殊主键在 top_fields 里另行兜底；先按常规 名称 like 查
+        r = await _post("query", {
+            "FormId": params.lookup_form,
+            "FieldKeys": f"{params.number_field},{params.name_field}",
+            "FilterString": f"{params.name_field} like '%{params.name}%'",
+            "StartRow": 0, "Limit": params.limit,
+        })
+        rows = r if isinstance(r, list) else []
+        if rows and isinstance(rows[0], dict) and rows[0].get("Result", {}).get("ResponseStatus", {}).get("ErrorCode"):
+            # 字段名不对（如该对象无 FName），把元数据字段清单带回给调用方
+            md = await _post("metadata", {"FormId": params.lookup_form})
+            nrd = (md.get("Result") or {}).get("NeedReturnData") or {}
+            head = next((e for e in nrd.get("Entrys", []) if e.get("Key") == "FBillHead"), {})
+            cand = [f.get("Key") for f in (head.get("Fields") or [])
+                    if f.get("Key") in ("FNumber", "FName", "FStaffNumber", "FDataValue", "FId")]
+            return _fmt({"ok": False, "error": "字段名不适用该对象",
+                         "suggested_field_keys": cand,
+                         "detail": rows[0]})
+        exact = []
+        for row in rows:
+            if isinstance(row, list) and len(row) >= 2:
+                exact.append({"number": str(row[0] or ""), "name": str(row[1] or "")})
+        return _fmt({
+            "ok": True, "lookup_form": params.lookup_form, "keyword": params.name,
+            "matched": len(rows), "results": exact,
+            "tip": '填入 model 参照字段：{"FNumber": "<results 里的 number>"}；'
+                   "建议人工确认名称一致后再保存。",
+        })
+    except Exception as e:
+        return _err(e, op="find_code")
+
+
 async def _post(ep_key: str, payload: Any) -> Any:
     """带自动重新登录的 API 调用（用于 Query 等只读操作）"""
     global _session_id

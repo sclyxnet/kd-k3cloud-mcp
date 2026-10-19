@@ -4,9 +4,46 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-> 当前 PyPI 版本：`0.3.8`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+> 当前 PyPI 版本：`0.3.9`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
 
 ---
+
+## [0.3.9] — 2026-10-19（自然语言建单：中文→字段/编码 翻译链路）
+
+> 用户诉求："我说要添加一个销售订单，哪些字段匹配哪些中文，查询参数去哪里找"——
+> 让 AI 按元数据自动翻译，不需要用户报字段名。
+
+### Added（新增）
+
+- **`kingdee_search_fields`**（第 108 个工具）：**中文字段名 → 字段 key**。按中文名在元数据
+  `Fields[].Name[2052]` 里搜（多关键词空格分隔），返回 {key, 中文名, 所在单据体, 是否必填,
+  参照对象, 填写方式}。支持 `only_required` / `only_lookup` 过滤。数据来自 QueryBusinessInfo，
+  非人工字典，任意 form_id 通用。
+- **`kingdee_find_code`**（第 109 个工具）：**中文值 → 编码**。按中文名在参照对象里模糊查
+  `{"FNumber": "...", "FName": "..."}`，如 客户"凤集"→CUST0005、物料"原料蛋"→S01。
+  字段名不适用时自动带回该对象的建议字段（FStaffNumber/FDataValue 等官方惯例）。
+- **SKILL.md 新增「自然语言建单五步流程」提示词**：定对象 → 中文字段翻译 → 中文值翻译
+  （多条命中让用户确认）→ 组装+validate → save。AI 依此自动完成"添加销售订单"类请求。
+
+### 树形账表 / 直接SQL账表的结论（真机 + 官方文档 open.kingdee.com/K3Cloud/help/BOS_Account.html）
+
+账表四种类型（简单/树形/分页/直接SQL）的数据源都是**二开插件或 SQL**。实测账套中
+`BOS_TreeSysReport`（树形账表模板）、`BOS_SQLReport`（直接SQL账表）是**设计器模板对象**，
+**没有统一取数 WebAPI**（GetSysReportData 对二开账表仅在其实现标准协议时可用，且参数各不相同）。
+二开账表取数两条路：① 配置 `MCP_SQLSERVER_*` 用 `kingdee_sql_search` 直查底层表；
+② 二开封装自定义 API（kapi/v2）后经 HTTP 调用。已写入 SKILL.md「报表取数三分法」。
+
+### 验证（真机 TEST20230518）
+
+| 项 | 结果 |
+|---|---|
+| search_fields("客户 数量", SAL_SaleOrder) | ✅ 客户→FCustId(lookup=BD_Customer,必填) |
+| find_code(BD_Customer,"凤集") | ✅ CUST0005 凤集食品集团有限公司蛋品部 等 5 条 |
+| find_code(BD_MATERIAL,"原料蛋") | ✅ S01 商用原料蛋-Y(2021) 等 4 条 |
+| 五步流程必填集 | ✅ FDate/FCustId/FLDatetime/FMinPlanDeliveryDate |
+
+---
+
 
 ## [0.3.8] — 2026-10-19（报表专用 API：库存分页报表 StockReportQueryService）
 

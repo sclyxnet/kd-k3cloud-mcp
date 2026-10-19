@@ -122,3 +122,32 @@ python3 integrations/workbuddy/scripts/configure_kingdee_mcp.py \
 列出来并询问用户是否需要切换（如 `2052=中文(简体)`、`1033=英语(美国)`、`3076=中文(繁體·香港)`）。
 
 > 切换仅对当前 MCP 进程生效；重启后回到 `mcp.json` 的 `env` 配置值。要永久生效请 `persist=True` 或改配置。
+
+## 自然语言建单（中文 → 字段/编码 自动翻译，0.3.9）
+
+用户说"添加一张销售订单，客户是凤集蛋品部，物料用原料蛋，数量 10"，按**五步流程**翻译执行，不要让用户报字段名：
+
+1. **定对象**：`kingdee_list_object_types(keyword="销售订单", queryable_only=True)` 或 `kingdee_list_forms(keyword="销售")` 找到 form_id（如 `SAL_SaleOrder`）。
+2. **中文字段翻译**：`kingdee_search_fields(form_id, keyword="客户 数量 日期")` —— 返回每个字段的 key / 中文名 / 所在单据体 / 是否必填 / 参照对象 / 填写方式。参照字段（`lookup_form` 非空）需填 `{"FNumber": 编码}`，普通字段直接填值。
+3. **中文值翻译**：对每个参照字段调 `kingdee_find_code(lookup_form, name=中文名)`，如 客户"凤集"→`CUST0005`、物料"原料蛋"→`S01`。**结果多于一条时让用户确认，不要替用户拍板。**
+4. **组装 + 校验**：按 `kingdee_get_bill_template(form_id)` 的骨架（元数据生成的必填项）填入翻译好的值，先 `kingdee_validate_bill` 校验（分录体 key 写错会被拦下并给出正确单据体名）。
+5. **保存**：`kingdee_save_bill`；确认无误后按需 `kingdee_submit_bills` / `kingdee_audit_bills`。
+
+注意事项：
+- 分录字段在对应单据体（entity ≠ FBillHead）下，填进 model 的**分录体 key**（如 `FSaleOrderEntry`）里，不是顶层。
+- `kingdee_find_code` 模糊命中多条时把列表给用户选；命中一条且名称完全一致才可直接用。
+- 保存报「字段是必填项」时回第 2 步用 `only_required=True` 复查缺失字段。
+
+## 报表取数三分法（0.3.8）
+
+报表（ModelTypeId=900）**不能**用 `kingdee_query_bills`（ExecuteBillQuery），按报表种类选接口：
+
+| 报表种类 | 工具 | 要点 |
+|---|---|---|
+| 账表（科目余额表 GL_RPT_AccountBalance 等） | `kingdee_query_report` | data 内 FieldKeys + Model（账簿/期间/级次）；FieldKeys 必须是报表真实列 key |
+| 供应链库存分页账表（物料收发明细 STK_StockDetailRpt、库存台账 STK_StockBookRpt 等） | `kingdee_query_stock_report` | 必须先 `kingdee_list_filter_schemes` 拿非默认方案 FSCHEMEID；raw JSON body；CurQueryId 翻页 |
+| 财务报表系统模板报表（资产负债表/利润表） | `kingdee_query_kds_report` | 不用 form_id，用报表模板编码 ReportNumber + 核算维度（编码用官方「报表API工具」生成参数核对） |
+
+树形账表（`BOS_TreeSysReport`）与直接SQL账表（`BOS_SQLReport`）是 **BOS 设计器模板对象**，数据源为二开插件/SQL，
+**没有统一取数 WebAPI**。二开账表取数两条路：① 配置 `MCP_SQLSERVER_*` 后用 `kingdee_sql_search` 直查底层表；
+② 二开封装自定义 API 后经通用 HTTP 调用。
