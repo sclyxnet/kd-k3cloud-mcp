@@ -707,6 +707,8 @@ class FieldDef:
     must_input: bool = False
     is_entry: bool = False
     children: List["FieldDef"] = field(default_factory=list)
+    table_name: str = ""      # 分录体对应的物理表名（Entry.TableName，如 t_PUR_POOrderEntry）
+    lookup_form: str = ""     # 基础资料/单据参照（LookUpObjectFormId），如 BD_MATERIAL / PUR_PurchaseOrder
 
 
 class MetadataValidator:
@@ -719,6 +721,11 @@ class MetadataValidator:
     def __init__(self, metadata: dict):
         self.metadata = metadata
         self.fields: dict[str, FieldDef] = {}
+        # 表单级信息（来自 NeedReturnData，非本地写死）
+        nrd0 = metadata.get("Result", {}).get("NeedReturnData") or {}
+        self.form_name: str = self._zh_name(nrd0.get("Name", [])) if isinstance(nrd0, dict) else ""
+        self.pk_field: str = str(nrd0.get("PkFieldName") or "") if isinstance(nrd0, dict) else ""
+        self.tables: List[str] = []      # 各 Entry 的物理表名（去重保序）
         self._parse_fields()
 
     @classmethod
@@ -764,6 +771,9 @@ class MetadataValidator:
           - FBillHead (ParentKey=None) → 主表字段平铺到顶层
           - 其他 ParentKey=None 的 Entry → 分录/子单头
           - ParentKey != None → 子分录（暂作为父分录的子集忽略）
+
+        元数据是权威来源（服务端 T_META_OBJECTTYPE + FKERNELXML 经
+        QueryBusinessInfo 结构化返回），不再依赖本地写死的字段清单。
         """
         nrd = self.metadata.get("Result", {}).get("NeedReturnData")
         if not isinstance(nrd, dict):
@@ -778,6 +788,9 @@ class MetadataValidator:
                 continue
 
             caption = self._zh_name(ent.get("Name", []))
+            entry_table = str(ent.get("TableName") or "")
+            if entry_table and entry_table not in self.tables:
+                self.tables.append(entry_table)
 
             if key == "FBillHead":
                 # 主表字段：平铺到顶层
@@ -792,6 +805,8 @@ class MetadataValidator:
                         field_type_key=str(f.get("FieldType", "")),
                         must_input=bool(f.get("MustInput")),
                         is_entry=False,
+                        table_name=str(f.get("TableName") or entry_table),
+                        lookup_form=str(f.get("LookUpObjectFormId") or ""),
                     )
             else:
                 # 分录或子单头：作为一个 entry 字段，children 为其内部字段
@@ -806,12 +821,17 @@ class MetadataValidator:
                         field_type=self._field_type_label(f),
                         field_type_key=str(f.get("FieldType", "")),
                         must_input=bool(f.get("MustInput")),
+                        table_name=str(f.get("TableName") or entry_table),
+                        lookup_form=str(f.get("LookUpObjectFormId") or ""),
                     ))
+                # 只把"真正含必填字段"或"有独立表名"的 Entry 记为分录体，
+                # 过滤掉 FIinstallment/FPaymentEntry 等纯子结构噪音
                 self.fields[key] = FieldDef(
                     name=key,
                     caption=caption,
                     is_entry=True,
                     children=children,
+                    table_name=entry_table,
                 )
 
     def get_valid_field_names(self) -> List[str]:
@@ -829,6 +849,14 @@ class MetadataValidator:
     def get_required_fields(self) -> List[str]:
         """获取必填字段（不含分录内字段）"""
         return [n for n, d in self.fields.items() if d.must_input and not d.is_entry]
+
+    def entry_bodies(self) -> List[FieldDef]:
+        """真正的分录体（有独立表名且含字段），排除纯子结构噪音。"""
+        out = []
+        for d in self.fields.values():
+            if d.is_entry and d.children and d.table_name:
+                out.append(d)
+        return out
 
     @staticmethod
     def _edit_distance(a: str, b: str) -> int:
@@ -951,6 +979,79 @@ class MetadataValidator:
                                     fixes.append({"from": f"{entry_name}[{idx}].{key}", "to": f"{entry_name}[{idx}].{corrected}", "location": entry_name})
 
         return fixed_payload, fixes
+
+
+def _meta_field_placeholder(fd: FieldDef) -> Any:
+    """按元数据推断字段占位值：参照型给 {"FNumber": "<编码>"}，日期给日期串，其余给 "<值>"。"""
+    cap = fd.caption or ""
+    if fd.lookup_form:
+        # 基础资料/单据参照：WebAPI 用 {"FNumber": "..."} 或 {"FId": ...}
+        return {"FNumber": f"<{fd.lookup_form} 编码>"}
+    if "日期" in cap or "时间" in cap:
+        return "<YYYY-MM-DD>"
+    if fd.field_type_key in ("231", "232"):     # 文本/长文本
+        return f"<{cap or fd.name}>"
+    if fd.field_type_key in ("163", "162"):     # 整数/小数
+        return 0
+    if fd.field_type_key == "198":              # 布尔
+        return False
+    return f"<{cap or fd.name}>"
+
+
+def _build_template_from_metadata(validator: "MetadataValidator", form_id: str) -> Optional[dict]:
+    """从 QueryBusinessInfo 元数据动态生成「最小可保存 model 骨架」。
+
+    取代本地写死的 BILL_TEMPLATES：任意 form_id 都能生成，必填项以服务端元数据
+    （T_META_OBJECTTYPE + FKERNELXML 经 QueryBusinessInfo 返回）为准，不依赖人工整理。
+
+    生成内容：
+      - 顶层必填字段（FBillHead 中 MustInput=1），按类型给占位值；参照型给 {"FNumber": "<编码>"}
+      - 分录体（有独立 TableName 的 Entry）及其必填子字段
+      - 附带 _form_name / _tables / _required 等元信息，便于 AI 理解
+    """
+    if not validator or not validator.fields:
+        return None
+
+    tpl: dict[str, Any] = {
+        "_source": "metadata(QueryBusinessInfo)",
+        "_form_name": validator.form_name or form_id,
+        "_pk_field": validator.pk_field or "",
+        "_tables": list(validator.tables),
+    }
+
+    # 顶层必填
+    req_top = [fd for fd in validator.fields.values() if fd.must_input and not fd.is_entry]
+    for fd in req_top:
+        tpl[fd.name] = _meta_field_placeholder(fd)
+    tpl["_required_top"] = [fd.name for fd in req_top]
+
+    # 分录体（取第一个真正的事务分录，通常是主单据体）
+    bodies = validator.entry_bodies()
+    if bodies:
+        # 优先选 caption/表名像主单据体的（字段最多的）
+        main_body = max(bodies, key=lambda d: len(d.children))
+        row = {}
+        for c in main_body.children:
+            if c.must_input:
+                row[c.name] = _meta_field_placeholder(c)
+        # 给一两个常用非必填字段做提示
+        for c in main_body.children[:1]:
+            if c.name not in row:
+                row[c.name] = _meta_field_placeholder(c)
+        tpl[main_body.name] = [row]
+        tpl["_required_entry"] = main_body.name
+        tpl["_required_entry_fields"] = [c.name for c in main_body.children if c.must_input]
+        if len(bodies) > 1:
+            tpl["_other_entries"] = [
+                {"name": b.name, "caption": b.caption, "table": b.table_name,
+                 "field_count": len(b.children)} for b in bodies if b is not main_body
+            ]
+
+    tpl["_tip"] = (
+        "本骨架由 QueryBusinessInfo 元数据动态生成（必填项以服务端为准）。"
+        "替换 <...> 占位符后调用 kingdee_validate_bill 校验，再 kingdee_save_bill 保存。"
+    )
+    return tpl
 
 
 def _metadata_cache_dir() -> str:
@@ -4031,28 +4132,52 @@ async def kingdee_validate_bill(params: SaveInput) -> str:
                  "idempotentHint": True, "openWorldHint": False}
 )
 async def kingdee_get_bill_template(form_id: str) -> str:
-    """获取常用单据的「已验证 model 骨架」模板（销售报价单/销售订单/采购订单等）。
+    """获取单据的「最小可保存 model 骨架」模板。
 
-    返回该表单的正确字段名、必填项、分录必填字段组成的 model 示例，AI 只需替换占位符填业务数据，
-    跳过字段摸索。占位符形如 <客户编码>。保存前建议再用 kingdee_validate_bill 校验。
+    **优先从金蝶元数据动态生成**（QueryBusinessInfo → NeedReturnData），任意 form_id 都支持，
+    必填项以服务端元数据为准（源自 T_META_OBJECTTYPE + FKERNELXML），不依赖本地人工整理。
+    仅当元数据不可达时，才降级到本地预置模板（SAL_Quotation / SAL_SaleOrder / PUR_PurchaseOrder）。
 
-    支持的 form_id：SAL_Quotation / SAL_SaleOrder / PUR_PurchaseOrder（其它表单返回提示）。
+    返回该表单的正确字段名、必填项、分录必填字段组成的 model 示例，AI 只需替换占位符填业务数据。
+    占位符形如 <客户编码>，参照型字段形如 {"FNumber": "<BD_MATERIAL 编码>"}。
+    保存前建议再用 kingdee_validate_bill 校验。
     """
     try:
-        tpl = BILL_TEMPLATES.get(form_id)
-        if not tpl:
+        # ① 元数据动态生成（首选）
+        validator = None
+        try:
+            validator = await _get_metadata_validator(form_id)
+        except Exception:
+            validator = None
+        tpl = _build_template_from_metadata(validator, form_id) if validator else None
+        if tpl:
             return _fmt({
-                "ok": False,
+                "ok": True,
                 "form_id": form_id,
-                "supported": list(BILL_TEMPLATES.keys()),
-                "tip": "该表单暂无预置模板，请用 kingdee_get_fields 查真实字段后自行构造 model，并用 kingdee_validate_bill 校验",
+                "source": "metadata",
+                "template": tpl,
+                "tip": tpl.get("_tip", "替换占位符后校验再保存"),
             })
+
+        # ② 降级：本地预置模板（元数据不可达时）
+        hard = BILL_TEMPLATES.get(form_id)
+        if hard:
+            return _fmt({
+                "ok": True,
+                "form_id": form_id,
+                "source": "hardcoded_fallback",
+                "warning": "元数据不可达，以下为本地预置模板（可能落后于服务端结构，仅作参考）",
+                "desc": hard.get("_desc", ""),
+                "template": {k: v for k, v in hard.items() if k != "_desc"},
+                "tip": "替换 <...> 占位符后调用 kingdee_validate_bill 校验，再 kingdee_save_bill 保存",
+            })
+
         return _fmt({
-            "ok": True,
+            "ok": False,
             "form_id": form_id,
-            "desc": tpl.get("_desc", ""),
-            "template": {k: v for k, v in tpl.items() if k != "_desc"},
-            "tip": "替换 <...> 占位符后调用 kingdee_validate_bill 校验，再 kingdee_save_bill 保存",
+            "error": "元数据不可达，且本地无预置模板",
+            "supported_fallback": list(BILL_TEMPLATES.keys()),
+            "tip": "请检查服务连通/登录态；或用 kingdee_list_forms 确认 form_id 是否正确",
         })
     except Exception as e:
         return _err(e, op="get_bill_template")
@@ -5555,6 +5680,15 @@ async def kingdee_query_system_config(params: SystemConfigInput) -> str:
 class FormSearchInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
     keyword: str = Field(default="", description="搜索关键词，如'员工'、'采购'、'库存'等，留空返回所有")
+    verify: bool = Field(
+        default=False,
+        description=(
+            "True 时用 QueryBusinessInfo 逐个验证候选 form_id 是否真实存在于本账套，"
+            "并把名称/数据库表名替换为元数据返回值（元数据驱动，比本地索引权威）。"
+            "每个 form_id 一次请求，结果已缓存，建议配合 keyword 缩小范围。"
+        ),
+    )
+    verify_limit: int = Field(default=8, ge=1, le=40, description="verify 时最多验证多少个候选 form_id")
 
 
 class FieldQueryInput(BaseModel):
@@ -5585,6 +5719,12 @@ async def kingdee_list_forms(params: FormSearchInput) -> str:
 
     Returns:
         str: JSON 格式的表单列表，含 form_id、名称、描述、推荐字段、数据库表名
+
+    说明：本地 FORM_CATALOG 只是**可搜索索引**（57 个常用表单）。单个表单的权威结构
+    （表单名、物理表名、字段、必填项）一律以 QueryBusinessInfo 元数据为准，见
+    kingdee_get_fields / kingdee_get_bill_template。需要枚举账套内**全部**业务对象时，
+    传 verify=True 验证候选；或用 kingdee_discover_table 查 T_META_OBJECTTYPE
+    （form_id 即该表 FID，需配置 MCP_SQLSERVER_*）。
     """
     keyword = params.keyword.lower()
     results = []
@@ -5606,14 +5746,56 @@ async def kingdee_list_forms(params: FormSearchInput) -> str:
                 "has_business_rules": bool(info.get("business_rules")),
             })
 
-    return _fmt({
+    # 可选：用元数据验证候选 form_id 是否真实存在，并覆盖名称/表名
+    verify_stats = None
+    if params.verify and results:
+        verified = []
+        exists = missing = err = 0
+        for f in results[: params.verify_limit]:
+            fid = f["form_id"]
+            try:
+                v = await _get_metadata_validator(fid)
+            except Exception:
+                v = None
+            f2 = dict(f)
+            if v and v.fields:
+                if v.form_name:
+                    f2["name"] = v.form_name
+                    f2["name_source"] = "metadata"
+                if v.tables:
+                    f2["db_tables"] = list(v.tables)
+                f2["verified"] = True
+                exists += 1
+            elif v is not None:
+                f2["verified"] = False
+                missing += 1
+            else:
+                f2["verified"] = None          # 元数据不可达（网络/登录问题）
+                err += 1
+            verified.append(f2)
+        results = verified
+        verify_stats = {
+            "verified_exists": exists,
+            "verified_missing": missing,
+            "metadata_unreachable": err,
+            "limit": params.verify_limit,
+        }
+
+    out: dict[str, Any] = {
         "count": len(results),
         "tip": (
             "使用 form_id 调用 kingdee_query_bills 查询数据，"
             "或调用 kingdee_get_fields 获取完整字段和业务规则"
         ),
-        "forms": results
-    })
+        "forms": results,
+    }
+    if verify_stats:
+        out["verify"] = verify_stats
+        out["catalog_note"] = (
+            "本地 FORM_CATALOG 仅为可搜索索引；verified=True 表示 QueryBusinessInfo "
+            "确认该 form_id 在本账套存在，名称/表名已替换为元数据返回值。"
+        )
+    return _fmt(out)
 
 
 @mcp.tool(
@@ -5628,12 +5810,16 @@ async def kingdee_get_fields(params: FieldQueryInput) -> str:
     本工具会调用金蝶 QueryBusinessInfo 接口拉取真实字段定义（带缓存）。
 
     返回内容：
-    - name/desc/db_tables/business_rules: 来自本地表单目录
-    - recommended_fields: 推荐查询字段（精简版，给 LLM 看的）
-    - metadata.fields: 所有主表字段（含 caption/type/must）
-    - metadata.entries: 所有分录子表及其字段
+    - name/db_tables: **来自 QueryBusinessInfo 元数据**（服务端权威）；desc/business_rules/recommended_fields 为本地语义补充
+    - metadata.fields: 所有主表字段（含 caption/type/must/参照对象）
+    - metadata.entries: 所有分录子表及其字段、物理表名
     - metadata.required_fields: 主表必填字段列表
-    - save_template: 自动生成的最小可保存 model 骨架（仅含必填字段）
+    - save_template: 由元数据动态生成的最小可保存 model 骨架（仅含必填字段）
+
+    元数据来源：`DynamicFormService.QueryBusinessInfo` 返回 `Result.NeedReturnData`
+    （Entrys[].Key / TableName / Fields[].Key / Name[{Key:2052}] / MustInput / LookUpObjectFormId），
+    即服务端 `T_META_OBJECTTYPE` + `FKERNELXML` 的结构化输出，等价于内部
+    `FormMetaDataCache.GetCachedFormMetaData(ctx, formId)` 的 WebAPI 版本。
 
     字段格式说明：
     - FXxx 是普通字段
@@ -5665,12 +5851,19 @@ async def kingdee_get_fields(params: FieldQueryInput) -> str:
         },
     }
 
-    # 调用 QueryBusinessInfo 获取真实字段定义
+    # 调用 QueryBusinessInfo 获取真实字段定义（元数据优先）
     try:
         validator = await _get_metadata_validator(form_id)
     except Exception:
         validator = None
 
+    if validator and (validator.form_name or validator.fields):
+        # 元数据可达：表单名与物理表名以元数据为准，本地目录仅作语义补充
+        if validator.form_name:
+            result["name"] = validator.form_name
+        if validator.tables:
+            result["db_tables"] = list(validator.tables)
+        result["name_source"] = "metadata"
     if not (validator and validator.fields):
         result["metadata_tip"] = (
             "QueryBusinessInfo 未返回元数据，已退回本地目录字段。"
@@ -5751,30 +5944,9 @@ async def kingdee_get_fields(params: FieldQueryInput) -> str:
         ),
     }
 
-    # 生成 save 模板骨架
-    def _placeholder(fd: FieldDef) -> Any:
-        ftype = (fd.field_type or "").lower()
-        if ftype.startswith("basefield->"):
-            return {"FNumber": ""}
-        # FieldType 数字编码常见映射（来自 ElementType 经验值）
-        ftk = fd.field_type_key or ""
-        if any(x in ftype or x in fd.name.lower() for x in ("date",)):
-            return "YYYY-MM-DD"
-        if any(x in fd.name.lower() for x in ("qty", "price", "amount", "rate")):
-            return 0
-        if ftk in ("232", "233"):  # decimal
-            return 0
-        return ""
-
-    template: dict[str, Any] = {}
-    for fd in main_fields:
-        if fd.must_input:
-            template[fd.name] = _placeholder(fd)
-    for name, ent in entries.items():
-        required_children = [c for c in ent.children if c.must_input]
-        if required_children:
-            row = {c.name: _placeholder(c) for c in required_children}
-            template[name] = [row]
+    # 保存骨架：与 kingdee_get_bill_template 共用同一套元数据驱动生成逻辑
+    # （只含顶层必填 + 主事务分录必填，过滤财务/付款计划等子结构噪音）
+    template = _build_template_from_metadata(validator, form_id)
     if template:
         result["save_template"] = template
 

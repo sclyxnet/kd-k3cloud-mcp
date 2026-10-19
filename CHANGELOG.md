@@ -4,7 +4,65 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-> 当前 PyPI 版本：`0.3.3`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+> 当前 PyPI 版本：`0.3.4`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+
+---
+
+## [0.3.4] — 2026-10-19（元数据驱动：对象/字段/模板不再写死）
+
+> 核心变化：**表单标识、表单名、物理表名、字段清单、必填项、分录体 key 全部改为从金蝶元数据动态读取**，
+> 不再依赖本地写死的 `BILL_TEMPLATES` / `FORM_CATALOG` 字段表。本地目录降级为「可搜索索引 + 语义补充」。
+
+### 元数据来源（对应服务端实现）
+
+`DynamicFormService.QueryBusinessInfo` 返回 `Result.NeedReturnData`：
+
+| 返回字段 | 含义 | 用途 |
+|---|---|---|
+| `Id` / `Name` / `PkFieldName` | 业务对象标识、多语言名、主键 | 表单名、主键字段 |
+| `Entrys[].Key` | 单据体 key（`FBillHead` / `FPOOrderEntry` …） | **分录体 key 的权威来源** |
+| `Entrys[].TableName` | 物理表名（`t_PUR_POOrder` / `t_PUR_POOrderEntry` …） | `db_tables` |
+| `Entrys[].Fields[].Key` / `Name[{Key:2052}]` | 字段标识 / 中文描述 | 字段清单 |
+| `Entrys[].Fields[].MustInput` | 是否必录 | 必填项校验 |
+| `Entrys[].Fields[].LookUpObjectFormId` | 基础资料/单据参照来源 | 告诉调用方编码该填哪个对象 |
+
+即服务端 `T_META_OBJECTTYPE` + `FKERNELXML` 的结构化输出，等价于内部
+`FormMetaDataCache.GetCachedFormMetaData(ctx, formId)` 的 WebAPI 版本。
+
+### Added（新增）
+
+- **`_build_template_from_metadata(validator, form_id)`**：从元数据动态生成「最小可保存 model 骨架」，
+  **任意 form_id 都支持**（不再局限于预置的 3 个）。顶层必填 + 主事务分录必填，参照型字段自动给出
+  `{"FNumber": "<来源对象 编码>"}` 提示（如 `FPurchaseOrgId → ORG_Organizations`、`FMaterialId → BD_MATERIAL`）。
+- **`FieldDef` 扩展** `table_name`（分录物理表名）/ `lookup_form`（字段参照来源）。
+- **`MetadataValidator` 扩展** `form_name`（元数据表单名）/ `tables`（全部物理表）/ `entry_bodies()`（过滤子结构噪音后的真实分录体）。
+- **`kingdee_list_forms` 新增 `verify` / `verify_limit`**：用 `QueryBusinessInfo` 验证候选 form_id 是否真实存在于本账套，
+  并把名称/表名替换为元数据返回值（`name_source=metadata`）。
+- **`kingdee_get_bill_template`**：优先元数据动态生成（`source=metadata`），元数据不可达才降级本地模板（`source=hardcoded_fallback` 并明确告警）。
+
+### Fixed（修复）
+
+- **`kingdee_save_bill` / `kingdee_validate_bill` 全线崩溃（本次改造引入的回归）**：在类中部插入模块级函数时，
+  `return tpl` 之后的 4 空格缩进代码被 Python 当作同一函数体内的不可达代码，导致
+  `_edit_distance` / `find_similar_field` / `validate_and_fix` 三个原类方法被"吞"进模块级函数，
+  报 `AttributeError: 'MetadataValidator' object has no attribute 'validate_and_fix'`。已将这三个方法搬回类内，
+  大小写自动纠错（`FpurchaseOrgId→FPurchaseOrgId`、`FmaterialId→FMaterialId`）复测恢复。
+- **`kingdee_get_fields` 的 `save_template` 含噪音分录体**：旧逻辑把所有有必填子字段的 Entry 都塞进骨架
+  （`FPOOrderFinance`/`FIinstallment` 等）。改为与 `get_bill_template` 共用 `_build_template_from_metadata`，只保留主事务分录。
+
+### 验证情况
+
+| 项 | 结果 |
+|---|---|
+| 元数据动态生成模板（`PUR_PurchaseOrder`，磁盘缓存命中） | ✅ `source=metadata`，7 张物理表、5 个顶层必填、5 个分录必填全部来自元数据 |
+| `get_fields` name/db_tables 走元数据 | ✅ `name=采购订单`、7 张表 |
+| 分录体 key 错误拦截 | ✅ 报错并列出正确单据体 `FPOOrderEntry` |
+| 必填缺失检测 | ✅ `['FDate','FPurchaseOrgId','FPurchaseDeptId','FBillTypeID']` |
+| 大小写自动纠错（`validate_and_fix`） | ✅ 回归修复后恢复 |
+| 无缓存表单实时拉元数据（`SAL_SaleOrder` 等） | ⏸ **未验证**：金蝶服务端当时持续故障（登录返回 `sa 登录失败`/`GetDataCenterContextByID` 异常），需联网的用例全部受阻 |
+
+> ⚠️ 服务端可用性：测试期间金蝶服务器多次出现间歇性登录失败（管理中心连不上账套数据库，
+> 错误含 `用户 'sa' 登录失败`）。走磁盘缓存的用例全部通过；需实时联网的用例待服务端恢复后补验。
 
 ---
 
