@@ -4,9 +4,37 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-> 当前 PyPI 版本：`0.3.9`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+> 当前 PyPI 版本：`0.3.10`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
 
 ---
+
+## [0.3.10] — 2026-10-19（库存报表实战踩坑固化）
+
+用户实战请求「查蛋品部 2026 年 1 月 固原电商库 某物料收发汇总」，暴露以下问题并修复/记录：
+
+### Fixed（修复）
+
+- **`kingdee_query_stock_report` 报错不可操作**：服务端返回
+  「过滤方案FSCHEMEID不属于当前报表！」时原提示只让"确认方案"，没说清根因。
+  现在按 message 分类给可操作提示：方案跨报表绑定（用 `kingdee_list_filter_schemes` 取**本报表**方案）、
+  参数不完整、字段绑定属性不匹配三种分别指引。
+- **`data:null` 与失败混在一起**：查询成功但 0 行时原来直接把 `data:null` 抛给调用方。
+  现在明确返回 `total_count:0` + 「查询成功但 0 行，该方案维度下无数据」说明，与 `success:false` 区分开。
+
+### 实战结论（全部真机 TEST20230518）
+
+| 发现 | 证据 |
+|---|---|
+| **过滤方案与报表绑定** | 明细表方案用于汇总表 → 「过滤方案FSCHEMEID不属于当前报表！」；汇总表自有方案 → success=true |
+| 同名主数据用组织字段消歧 | 仓库「固原电商库」3 个同名，加 `FUseOrgId.FNumber='0201'`（使用组织）后唯一 → CK044 |
+| 物料编码 | 「黄天鹅可生食鸡蛋-4*1-珍珠棉」→ 01020101.0113（含蛋品部 0201 维度）；注意与「24*1」区分 |
+| 汇总表计算重 | 带 QuicklyCondition/MoreCondition 多次超时或返回非 JSON（90~120s 仍未稳定） |
+| QuicklyCondition 字段绑定属性 | 明细表样例 BeginMaterialId/EndMaterialId/BeginDate/EndDate 有效；汇总表的组织/仓库绑定属性名本环境未确认 |
+
+已写入 SKILL.md「库存报表实战要点」。
+
+---
+
 
 ## [0.3.9] — 2026-10-19（自然语言建单：中文→字段/编码 翻译链路）
 

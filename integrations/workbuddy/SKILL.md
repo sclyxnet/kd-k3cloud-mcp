@@ -151,3 +151,17 @@ python3 integrations/workbuddy/scripts/configure_kingdee_mcp.py \
 树形账表（`BOS_TreeSysReport`）与直接SQL账表（`BOS_SQLReport`）是 **BOS 设计器模板对象**，数据源为二开插件/SQL，
 **没有统一取数 WebAPI**。二开账表取数两条路：① 配置 `MCP_SQLSERVER_*` 后用 `kingdee_sql_search` 直查底层表；
 ② 二开封装自定义 API 后经通用 HTTP 调用。
+
+## 库存报表实战要点（0.3.10，真机踩坑）
+
+- **过滤方案与报表绑定**：明细表（STK_StockDetailRpt）的方案不能用于汇总表（STK_StockSummaryRpt），
+  跨用报「过滤方案FSCHEMEID不属于当前报表！」。必须用 `kingdee_list_filter_schemes(本报表form_id)` 取本报表方案。
+- `data:null + TotalCount:0` 是**无数据**，不是故障；`success:false` 才是失败，两者一起判断。
+- **同名主数据用组织字段消歧**（0.3.10 实战验证）：仓库查所属/使用组织 `FUseOrgId.FNumber`
+  （如 `FName='固原电商库' and FUseOrgId.FNumber='0201'` → CK044 唯一）；物料用 `FUseOrgId` 同理。
+  0.3.9 的 `kingdee_find_code` 只能按名称模糊查，多命中时必须再带组织条件精确化。
+- **报表计算重**：带 QuicklyCondition/MoreCondition 时服务端可能 90 秒以上甚至超时返回非 JSON。
+  Limit 从小起步（5~10），条件尽量精确（物料范围 Begin/End 同值最稳）。
+- **QuicklyCondition 字段绑定属性**样例（物料收发明细表）：BeginMaterialId/EndMaterialId/BeginDate/EndDate；
+  字段名不匹配时会被静默忽略 → 全量扫描 → 超时。汇总表的组织/仓库绑定属性名本环境未确认，
+  需要时用 MoreCondition（FMATERIALID/FSTOCKID/FSTOCKORGID）试。

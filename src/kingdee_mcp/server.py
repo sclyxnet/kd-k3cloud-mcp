@@ -3181,9 +3181,25 @@ async def kingdee_query_stock_report(params: StockReportQueryInput) -> str:
             inner["CurQueryId"] = params.cur_query_id
         r = await _post_parameters_json("stock_report", inner)
         if isinstance(r, dict) and r.get("success") is False:
-            return _fmt({"ok": False, "error": r.get("message", "查询失败"),
-                         "hint": "常见原因：FSCHEMEID 为默认方案/不存在、快捷过滤字段名不对。"
-                                 "先用 kingdee_list_filter_schemes 确认方案。"})
+            msg = str(r.get("message") or "")
+            hint = "常见原因：FSCHEMEID 为默认方案/不存在、快捷过滤字段名不对。先用 kingdee_list_filter_schemes 确认方案。"
+            if "不属于当前报表" in msg:
+                hint = ("过滤方案与报表是**绑定关系**：明细表的方案不能用于汇总表（反之亦然），"
+                        "服务端会报「过滤方案FSCHEMEID不属于当前报表」。"
+                        "请用 kingdee_list_filter_schemes(form_id) 拿**本报表**的方案。")
+            elif "参数错误" in msg or "不能为空" in msg:
+                hint = ("内层参数不完整。FSCHEMEID 必录且不能用默认方案；"
+                        "QuicklyCondition 的 FieldName 是过滤框字段绑定属性（明细表样例："
+                        "BeginMaterialId/EndMaterialId/BeginDate/EndDate），字段名不匹配时可能被忽略导致全量扫描。")
+            return _fmt({"ok": False, "error": msg or "查询失败", "hint": hint})
+        if isinstance(r, dict) and r.get("data") is None and not r.get("TotalCount"):
+            return _fmt({
+                "ok": True, "form_id": params.form_id, "scheme_id": params.scheme_id,
+                "cur_query_id": "", "data": [], "total_count": 0,
+                "note": ("查询成功但 0 行：该过滤方案维度下无数据（不是接口故障）。"
+                         "可换本报表的其它方案，或用 QuicklyCondition/MoreCondition 传条件"
+                         "（该报表计算较重，条件会显著拉长耗时，建议 Limit 从小起步）。"),
+            })
         return _fmt({
             "ok": True,
             "form_id": params.form_id,
