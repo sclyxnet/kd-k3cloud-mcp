@@ -721,6 +721,180 @@ _session_id: Optional[str] = None
 _METADATA_CACHE: dict[str, Optional[dict]] = {}  # form_id -> metadata
 
 
+# ─────────────────────────────────────────────
+# 业务对象目录（权威来源：BOS_ObjectType / T_META_OBJECTTYPE）
+# ─────────────────────────────────────────────
+# 实测（2026-10-19，TEST20230518）：QueryBusinessInfo("BOS_ObjectType") 返回
+#   NeedReturnData.Id = "BOS_ObjectType"（名称「业务对象」），PkFieldName = FID，
+#   Entrys[0].TableName = "T_META_OBJECTTYPE"。
+# 该表即元数据对象注册表：FID 就是 form_id，FName 是中文名，
+#   FSubSystemId.FName = 所属子系统（如「基础资料」「采购管理」），
+#   FModelTypeId = 领域模型 Id（元数据类型）。
+# 全量实测：账套内共 10545 条，其中标准 form_id 格式 7179 条。
+# FModelTypeId 语义（按实测样例名归纳，非金蝶官方枚举文档）：
+_MODEL_TYPE_NAMES: dict[str, str] = {
+    "100":  "单据",
+    "400":  "基础资料",
+    "500":  "界面/表单",
+    "600":  "套打模板",
+    "700":  "转换规则",
+    "800":  "弹性域/辅助属性",
+    "900":  "报表",
+    "1300": "预警",
+    "1400": "移动界面",
+    "1600": "万能报表",
+    "220":  "系统参数",
+    "2200": "日志归档",
+    "710":  "状态迁移图",
+}
+# WebAPI 可直接查询/操作的模型类型（ExecuteBillQuery / Save / View 等）
+_QUERYABLE_MODEL_TYPES = {"100", "400", "900"}
+
+_OBJTYPE_CACHE: Optional[List[dict]] = None
+_OBJTYPE_CACHE_TS: float = 0.0
+_OBJTYPE_CACHE_TTL: float = 1800.0   # 30 分钟：元数据对象不常变
+
+# FID 形态判定（实测 2026-10-19）：
+#   standard = 可读 form_id（如 PUR_PurchaseOrder、BD_MATERIAL、lyx_gcxm），WebAPI 认；
+#   guid     = 元数据内部 Id（36 位 GUID），WebAPI **不认**——
+#              QueryBusinessInfo 返回空、ExecuteBillQuery 报「在运行时不允许加载标识为"xxx"」；
+#   other    = 其它形态（如 24 位十六进制串）。
+# 账套内同名对象极多（实测 635 个名称对应多个 FID，如"采购订单"有 6 条），
+# 其中只有 standard 形态可用于 WebAPI，故默认只返回 standard。
+_FID_GUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
+
+
+def _fid_kind(fid: str) -> str:
+    if _FID_GUID_RE.match(fid):
+        return "guid"
+    if "_" in fid and re.match(r"^[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9]+$", fid):
+        return "standard"
+    return "other"
+
+
+def _objtype_cache_path() -> str:
+    env_hash = "".join(f"{k}={os.getenv(k, '')}|" for k in
+                       ("KINGDEE_SERVER_URL", "KINGDEE_ACCT_ID", "KINGDEE_USERNAME"))
+    import hashlib
+    h = hashlib.md5(env_hash.encode("utf-8")).hexdigest()[:8]
+    return os.path.join(_metadata_cache_dir(), f"{h}_BOS_ObjectType.json")
+
+
+async def _fetch_object_types(force: bool = False) -> List[dict]:
+    """分页拉取 BOS_ObjectType 全量业务对象（带内存+磁盘缓存）。
+
+    返回 [{fid, name, subsystem, subsystem_no, model_type, model_type_name}]。
+    """
+    global _OBJTYPE_CACHE, _OBJTYPE_CACHE_TS
+    now = time.time()
+    if not force and _OBJTYPE_CACHE is not None and (now - _OBJTYPE_CACHE_TS) < _OBJTYPE_CACHE_TTL:
+        return _OBJTYPE_CACHE
+
+    # 磁盘缓存
+    if not force:
+        try:
+            p = _objtype_cache_path()
+            if os.path.exists(p):
+                with open(p, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, list) and data:
+                    # 向后兼容：旧缓存可能缺 fid_kind/queryable，现场补齐
+                    for o in data:
+                        if isinstance(o, dict) and o.get("fid") and "fid_kind" not in o:
+                            o["fid_kind"] = _fid_kind(str(o["fid"]))
+                        if isinstance(o, dict) and "queryable" not in o:
+                            o["queryable"] = str(o.get("model_type")) in _QUERYABLE_MODEL_TYPES
+                        if isinstance(o, dict) and "model_type_name" not in o:
+                            o["model_type_name"] = _MODEL_TYPE_NAMES.get(
+                                str(o.get("model_type")), f"类型{o.get('model_type')}")
+                    _OBJTYPE_CACHE = data
+                    _OBJTYPE_CACHE_TS = now
+                    return data
+        except Exception:
+            pass
+
+    fields = ("FID,FName,FSubSystemId.FNumber,FSubSystemId.FName,"
+              "FModelTypeId,FModelTypeSubId,FDevType,FISTEMPLATE")
+    out: List[dict] = []
+    start, limit = 0, 2000
+    while True:
+        r = await _post("query", {"FormId": "BOS_ObjectType", "FieldKeys": fields,
+                                  "FilterString": "", "StartRow": start, "Limit": limit})
+        rows = r if isinstance(r, list) else []
+        if not rows:
+            break
+        for x in rows:
+            if not isinstance(x, list) or len(x) < 5:
+                continue
+            fid = str(x[0] or "").strip()
+            if not fid:
+                continue
+            mt = str(x[4] or "")
+            out.append({
+                "fid": fid,
+                "name": str(x[1] or ""),
+                "subsystem_no": str(x[2] or ""),
+                "subsystem": str(x[3] or ""),
+                "model_type": mt,
+                "model_type_name": _MODEL_TYPE_NAMES.get(mt, f"类型{mt}"),
+                "queryable": mt in _QUERYABLE_MODEL_TYPES,
+                "fid_kind": _fid_kind(fid),
+            })
+        start += len(rows)
+        if len(rows) < limit:
+            break
+
+    _OBJTYPE_CACHE = out
+    _OBJTYPE_CACHE_TS = now
+    try:
+        os.makedirs(_metadata_cache_dir(), exist_ok=True)
+        with open(_objtype_cache_path(), "w", encoding="utf-8") as f:
+            json.dump(out, f, ensure_ascii=False)
+    except Exception:
+        pass
+    return out
+
+
+async def _authoritative_category(form_id: str) -> Optional[dict]:
+    """从 BOS_ObjectType 查权威对象分类；查不到返回 None（调用方降级到结构推断）。"""
+    try:
+        objs = await _fetch_object_types()
+    except Exception:
+        return None
+    if not objs:
+        return None
+    key = (form_id or "").strip()
+    lower = key.lower()
+    hit = None
+    for o in objs:
+        # 只认可读 form_id：GUID 形态 WebAPI 不认，命中它没有意义
+        if o.get("fid_kind") != "standard":
+            continue
+        if o["fid"] == key:
+            hit = o
+            break
+    if hit is None:   # 大小写不敏感兜底（BD_Material vs BD_MATERIAL）
+        for o in objs:
+            if o.get("fid_kind") == "standard" and o["fid"].lower() == lower:
+                hit = o
+                break
+    if hit is None:
+        return None
+    return {
+        "category": hit["model_type_name"],
+        "subsystem": hit["subsystem"],
+        "name": hit["name"],
+        "model_type": hit["model_type"],
+        "queryable": hit["queryable"],
+        "inferred": False,
+        "source": "BOS_ObjectType(T_META_OBJECTTYPE)",
+        "note": (
+            "权威分类，来自元数据对象注册表 BOS_ObjectType（表 T_META_OBJECTTYPE）。"
+            "queryable=false 表示该对象是界面/模板/日志等，WebAPI 查询与保存通常不适用。"
+        ),
+    }
+
+
 @dataclass
 class FieldDef:
     """字段定义"""
@@ -4243,11 +4417,15 @@ async def kingdee_get_bill_template(form_id: str) -> str:
             validator = None
         tpl = _build_template_from_metadata(validator, form_id) if validator else None
         if tpl:
-            # 附带对象分类（结构推断）与主键字段，便于 AI 判断该对象能做什么操作
+            # 附带对象分类（BOS_ObjectType 权威优先，结构推断降级）与主键字段
             try:
-                tpl["_object_category"] = validator.object_category()
+                cat = await _authoritative_category(form_id)
+                tpl["_object_category"] = cat or validator.object_category()
             except Exception:
-                pass
+                try:
+                    tpl["_object_category"] = validator.object_category()
+                except Exception:
+                    pass
             return _fmt({
                 "ok": True,
                 "form_id": form_id,
@@ -5774,6 +5952,111 @@ async def kingdee_query_system_config(params: SystemConfigInput) -> str:
 # 元数据查询工具
 # ─────────────────────────────────────────────
 
+
+class ObjectTypeQueryInput(BaseModel):
+    """业务对象目录查询入参（权威来源 BOS_ObjectType / T_META_OBJECTTYPE）"""
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    keyword: str = Field(default="", description="关键字，匹配 form_id 或中文名，如'采购'、'物料'")
+    model_type: str = Field(
+        default="",
+        description=(
+            "按元数据类型过滤（FModelTypeId），支持中文名或数字："
+            "100=单据、400=基础资料、900=报表、500=界面/表单、600=套打模板、1400=移动界面…。"
+            "留空返回全部。只要可查询对象传 queryable。"
+        ),
+    )
+    subsystem: str = Field(default="", description="按子系统过滤（FSubSystemId.FName），如'采购管理'、'基础资料'")
+    queryable_only: bool = Field(default=False, description="True 时只返回 WebAPI 可查询/操作的对象（单据/基础资料/报表）")
+    include_guid: bool = Field(
+        default=False,
+        description=(
+            "是否包含 GUID 形态的 FID。默认 False——GUID 是元数据内部 Id，"
+            "WebAPI 不认（ExecuteBillQuery 报「在运行时不允许加载标识为 xxx」），只有可读 form_id 能用。"
+        ),
+    )
+    limit: int = Field(default=50, ge=1, le=500, description="返回条数上限")
+    force_refresh: bool = Field(default=False, description="True 时忽略缓存重新拉取（元数据对象变更后用）")
+
+
+@mcp.tool(
+    name="kingdee_list_object_types",
+    annotations={"title": "列出账套全部业务对象", "readOnlyHint": True, "destructiveHint": False,
+                 "idempotentHint": True, "openWorldHint": False}
+)
+async def kingdee_list_object_types(params: ObjectTypeQueryInput) -> str:
+    """列出账套内**全部业务对象**（form_id + 中文名 + 子系统 + 元数据类型）。
+
+    权威来源是元数据对象注册表 `BOS_ObjectType`（物理表 `T_META_OBJECTTYPE`，主键 `FID` 即 form_id），
+    不是本地写死清单 —— 账套内实际有多少对象、各是什么类型，以本工具返回为准。
+
+    实测参考（TEST20230518）：全量 10545 条，其中标准 form_id 格式 7179 条；
+    按类型：单据(FModelTypeId=100) 1348、基础资料(400) 1240、界面/表单(500) 3175、
+    报表(900) 373、移动界面(1400) 632、套打模板(600) 53 等。
+
+    ⚠️ 只有 `queryable=true`（单据/基础资料/报表）适合 ExecuteBillQuery / Save / View；
+    界面/表单、套打模板、移动界面、日志归档等类型不是可查询对象。
+
+    用法：
+    - 想知道账套有哪些采购单据：keyword="采购" + queryable_only=True
+    - 想按类型浏览：model_type="单据" / "400"
+    - 想知道某 form_id 是否存在：keyword 直接传 form_id
+    """
+    try:
+        objs = await _fetch_object_types(force=params.force_refresh)
+    except Exception as e:
+        return _err(e, op="list_object_types")
+
+    if not objs:
+        return _fmt({"ok": False, "error": "未取到业务对象目录（检查 form_id BOS_ObjectType 是否可查/登录态）"})
+
+    kw = params.keyword.strip().lower()
+    subs = params.subsystem.strip()
+    mt = params.model_type.strip()
+
+    # model_type 归一化：中文名 → 数字
+    if mt and not mt.isdigit():
+        for k, v in _MODEL_TYPE_NAMES.items():
+            if v == mt:
+                mt = k
+                break
+
+    matched = []
+    for o in objs:
+        if kw and kw not in o["fid"].lower() and kw not in o["name"].lower():
+            continue
+        if subs and subs not in o["subsystem"]:
+            continue
+        if mt and o["model_type"] != mt:
+            continue
+        if params.queryable_only and not o["queryable"]:
+            continue
+        if not params.include_guid and o.get("fid_kind") != "standard":
+            continue
+        matched.append(o)
+
+    total = len(matched)
+    shown = matched[: params.limit]
+    return _fmt({
+        "ok": True,
+        "source": "BOS_ObjectType(T_META_OBJECTTYPE)",
+        "total_in_ledger": len(objs),
+        "standard_form_ids": sum(1 for o in objs if o.get("fid_kind") == "standard"),
+        "matched": total,
+        "showing": len(shown),
+        "model_type_legend": dict(_MODEL_TYPE_NAMES),
+        "objects": [{
+            "form_id": o["fid"], "name": o["name"], "subsystem": o["subsystem"],
+            "model_type": o["model_type"], "model_type_name": o["model_type_name"],
+            "queryable": o["queryable"],
+        } for o in shown],
+        "tip": (
+            "取到 form_id 后用 kingdee_get_fields 看字段、kingdee_get_bill_template 拿保存骨架、"
+            "kingdee_query_bills 查数据。queryable=false 的类型（界面/模板/日志等）不适用这些操作。"
+            "已默认排除 GUID 形态 FID（WebAPI 不认）；如确需查看加 include_guid=True。"
+        ),
+    })
+
+
 class FormSearchInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
     keyword: str = Field(default="", description="搜索关键词，如'员工'、'采购'、'库存'等，留空返回所有")
@@ -5862,9 +6145,13 @@ async def kingdee_list_forms(params: FormSearchInput) -> str:
                 if v.tables:
                     f2["db_tables"] = list(v.tables)
                 try:
-                    f2["object_category"] = v.object_category()
+                    cat = await _authoritative_category(fid)
+                    f2["object_category"] = cat or v.object_category()
                 except Exception:
-                    pass
+                    try:
+                        f2["object_category"] = v.object_category()
+                    except Exception:
+                        pass
                 f2["verified"] = True
                 exists += 1
             elif v is not None:
@@ -5965,11 +6252,19 @@ async def kingdee_get_fields(params: FieldQueryInput) -> str:
         if validator.tables:
             result["db_tables"] = list(validator.tables)
         result["name_source"] = "metadata"
-        # 对象分类（结构推断，附依据；权威分类需 T_META_ObjectType / QueryGroupInfo）
+        # 对象分类：优先 BOS_ObjectType 权威分类，失败降级到结构推断
+        cat = None
         try:
-            result["object_category"] = validator.object_category()
+            cat = await _authoritative_category(form_id)
         except Exception:
-            pass
+            cat = None
+        if cat is None:
+            try:
+                cat = validator.object_category()
+            except Exception:
+                cat = None
+        if cat:
+            result["object_category"] = cat
     if not (validator and validator.fields):
         result["metadata_tip"] = (
             "QueryBusinessInfo 未返回元数据，已退回本地目录字段。"

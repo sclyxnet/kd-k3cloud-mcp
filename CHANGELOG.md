@@ -4,7 +4,71 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-> 当前 PyPI 版本：`0.3.5`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+> 当前 PyPI 版本：`0.3.6`（见 `pyproject.toml`）。本文件按功能里程碑汇总，未单独打 git tag。
+
+---
+
+## [0.3.6] — 2026-10-19（权威对象目录：BOS_ObjectType / T_META_OBJECTTYPE）
+
+> 彻底解决「支持的单据/对象以什么为准」：改为直接读元数据对象注册表 `BOS_ObjectType`。
+> 服务端恢复后完成真机验证（账套 `TEST20230518` / Id `6ad5b2e278002b`）。
+
+### 实测证据链
+
+1. `QueryBusinessInfo("BOS_ObjectType")` → `NeedReturnData.Id = "BOS_ObjectType"`（名称「业务对象」）、
+   `PkFieldName = FID`、`Entrys[0].TableName = "T_META_OBJECTTYPE"`。**这正是用户指出的那张表。**
+2. `ExecuteBillQuery(BOS_ObjectType)` 可查全量数据，字段：
+   `FID`(= form_id)、`FName`(中文名)、`FSubSystemId.FNumber/FName`(子系统，如「基础资料」「采购管理」)、
+   `FModelTypeId`(领域模型 Id = 元数据类型)、`FModelTypeSubId`、`FDevType`、`FISTEMPLATE`。
+3. **账套实测规模**：共 **10545** 条对象，其中标准 form_id 格式 **7179** 条。
+   按 `FModelTypeId`：单据(100) 1348、基础资料(400) 1240、界面/表单(500) 3175、
+   报表(900) 373、移动界面(1400) 632、套打模板(600) 53、系统参数(220) 257、预警(1300) 66 等。
+4. `BD_MATERIAL` → 子系统「基础资料」、`FModelTypeId=400`；`PUR_PurchaseOrder` → 「采购管理」、`100`。
+   **与用户说的"BD_Material 为基础资料"完全一致。**
+
+### ⚠️ 重要坑：FID 有两种形态，GUID 形态 WebAPI 不认
+
+账套内**同名对象极多**（实测 635 个名称对应多个 FID；"采购订单"就有 6 条：`PUR_PurchaseOrder`、
+两个 GUID、`BD_PurchaseOrderWarnObject`(预警)、`Pur_MobPurchaseOrderList`(移动列表)、`SCP_PurchaseOrder`(供应商协同)）。
+
+实测 GUID 形态**不能用于 WebAPI**：
+- `QueryBusinessInfo("45b97b74-007a-4a8f-af22-a52f1ae1b23c")` → `NeedReturnData` 为空；
+- `ExecuteBillQuery(同一 GUID)` → 报「在运行时不允许加载标识为"45b97b74-…"」。
+
+因此 `_fid_kind()` 区分 `standard`（可读 form_id，如 `PUR_PurchaseOrder`/`BD_MATERIAL`/`lyx_gcxm`）/
+`guid`（36 位 GUID）/ `other`，**默认只返回 standard**，`include_guid=True` 才展开。
+
+### Added（新增）
+
+- **`kingdee_list_object_types`**（第 104 个工具）：列出账套**全部业务对象**，支持
+  `keyword`（匹配 form_id/中文名）、`model_type`（中文名或数字，如"单据"/"100"/"基础资料"/"400"）、
+  `subsystem`、`queryable_only`（只留单据/基础资料/报表）、`include_guid`、`limit`、`force_refresh`。
+  返回 `total_in_ledger` / `standard_form_ids` / `model_type_legend`。
+- **`_fetch_object_types()`**：分页拉取 `BOS_ObjectType` 全量（每页 2000），内存 + 磁盘缓存（30 分钟），
+  磁盘缓存向后兼容旧格式。
+- **`_authoritative_category(form_id)`**：从对象注册表查**权威分类**（`inferred: false`），
+  只认可读 form_id（大小写不敏感兜底），查不到返回 None 由调用方降级。
+- `_MODEL_TYPE_NAMES` / `_QUERYABLE_MODEL_TYPES`：`FModelTypeId` → 中文类型名映射，
+  及"哪些类型可被 WebAPI 查询/操作"（100 单据 / 400 基础资料 / 900 报表）。
+
+### Changed（变更）
+
+- `kingdee_get_fields` / `kingdee_get_bill_template` / `kingdee_list_forms(verify=True)` 的
+  `object_category` **升级为权威分类**（来源 `BOS_ObjectType(T_META_OBJECTTYPE)`），
+  仅在查不到时才回退到 0.3.5 的结构推断（并保留 `inferred: true` 标注）。
+  权威分类额外提供 `subsystem`（所属子系统）、`queryable`（是否适合 WebAPI 操作）。
+
+### 验证情况（真机，TEST20230518）
+
+| 项 | 结果 |
+|---|---|
+| `list_object_types` 全量拉取 | ✅ 10545 条，standard 7179 条 |
+| `keyword=采购` + `queryable_only` | ✅ 65 条，全部为可读 form_id，无 GUID |
+| `model_type=100`（单据） | ✅ 1425 条 |
+| 权威分类 `BD_MATERIAL` / `PUR_PurchaseOrder` / `STK_InStock` / `BD_Supplier` | ✅ 基础资料 / 单据，subsystem 正确 |
+| GUID 排除 + `include_guid` 开关 | ✅ |
+| `get_fields` / `get_bill_template` 输出权威分类 | ✅ `inferred: false` |
+| 大小写不敏感（`BD_Material`） | ✅ |
 
 ---
 
